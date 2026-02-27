@@ -23,11 +23,9 @@ const FarmaciaCard = ({
   longitude,
 }: FarmaciaCardProps) => {
   const handleOpenMap = () => {
-    if (latitude && longitude) {
-      window.open(
-        `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`,
-        "_blank"
-      );
+    if (latitude !== undefined && longitude !== undefined) {
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`;
+      window.open(url, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -60,15 +58,27 @@ const FarmaciaCard = ({
         </div>
       </CardContent>
       <CardFooter>
-        <Button
-          variant="outline"
+        <a
+          href={latitude !== undefined && longitude !== undefined
+            ? `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`
+            : "#"
+          }
+          target="_blank"
+          rel="noopener noreferrer"
           className="w-full"
-          onClick={handleOpenMap}
-          disabled={!latitude || !longitude}
+          onClick={(e) => {
+            if (latitude === undefined || longitude === undefined) e.preventDefault();
+          }}
         >
-          <Navigation className="h-4 w-4 mr-2" />
-          Ver no Mapa
-        </Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            disabled={latitude === undefined || longitude === undefined}
+          >
+            <Navigation className="h-4 w-4 mr-2" />
+            Ver no Mapa
+          </Button>
+        </a>
       </CardFooter>
     </Card>
   );
