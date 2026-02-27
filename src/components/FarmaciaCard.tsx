@@ -25,7 +25,7 @@ const FarmaciaCard = ({
   const handleOpenMap = () => {
     if (latitude && longitude) {
       window.open(
-        `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`,
+        `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`,
         "_blank"
       );
     }

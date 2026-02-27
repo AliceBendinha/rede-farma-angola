@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { MapPin, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import FarmaciaCard from "@/components/FarmaciaCard";
+
+const MapaFarmacias = lazy(() => import("@/components/MapaFarmacias"));
 
 // Dados de exemplo
 const farmaciasExemplo = [
@@ -156,16 +158,13 @@ const Farmacias = () => {
           </TabsContent>
           
           <TabsContent value="map">
-            <div className="rounded-lg border bg-muted/30 p-8 text-center">
-              <MapPin className="mx-auto mb-4 h-16 w-16 text-muted-foreground/50" />
-              <h3 className="mb-2 text-xl font-semibold text-foreground">
-                Mapa Interativo em Breve
-              </h3>
-              <p className="text-muted-foreground">
-                A funcionalidade de mapa interativo será adicionada em breve.
-                Por enquanto, use os botões "Ver no Mapa" nos cards das farmácias.
-              </p>
-            </div>
+            <Suspense fallback={
+              <div className="flex items-center justify-center py-16">
+                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+              </div>
+            }>
+              <MapaFarmacias farmacias={filteredFarmacias} />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </div>
