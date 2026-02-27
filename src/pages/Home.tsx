@@ -22,16 +22,25 @@ const Home = () => {
       icon: Search,
       title: "Pesquisa Rápida",
       description: "Encontre medicamentos disponíveis em segundos",
+      action: () => {
+        const input = document.querySelector<HTMLInputElement>('input[placeholder*="Pesquisar medicamentos"]');
+        if (input) {
+          input.focus();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      },
     },
     {
       icon: TrendingUp,
       title: "Compare Preços",
       description: "Veja os melhores preços entre farmácias próximas",
+      action: () => navigate("/medicamentos"),
     },
     {
       icon: MapPin,
       title: "Localização",
       description: "Descubra farmácias perto de si com mapa interativo",
+      action: () => navigate("/farmacias"),
     },
   ];
 
@@ -81,12 +90,16 @@ const Home = () => {
         {/* Features Grid */}
         <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-3">
           {features.map((feature, index) => (
-            <Card key={index} className="border-border transition-all duration-300 hover:shadow-md">
+            <Card
+              key={index}
+              onClick={feature.action}
+              className="cursor-pointer border-border transition-all duration-300 hover:shadow-md hover:border-primary/30 hover:-translate-y-1"
+            >
               <CardHeader>
                 <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                   <feature.icon className="h-6 w-6 text-primary" />
                 </div>
-                <CardTitle className="text-xl">{feature.title}</CardTitle>
+                <CardTitle className="text-xl font-heading">{feature.title}</CardTitle>
                 <CardDescription className="text-base">
                   {feature.description}
                 </CardDescription>
