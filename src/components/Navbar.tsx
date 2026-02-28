@@ -1,7 +1,8 @@
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
-import { Pill, MapPin, Search, Menu } from "lucide-react";
+import { Pill, MapPin, Search, Menu, LogIn, LayoutDashboard } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sheet,
   SheetContent,
@@ -10,6 +11,7 @@ import {
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, role } = useAuth();
 
   const navItems = [
     { to: "/", label: "Início", icon: Search },
@@ -40,6 +42,25 @@ const Navbar = () => {
               {item.label}
             </NavLink>
           ))}
+          {user && role ? (
+            <NavLink
+              to="/dashboard"
+              className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+              activeClassName="text-primary"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Painel
+            </NavLink>
+          ) : (
+            <NavLink
+              to="/login"
+              className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+              activeClassName="text-primary"
+            >
+              <LogIn className="h-4 w-4" />
+              Entrar
+            </NavLink>
+          )}
         </div>
 
         {/* Mobile Navigation */}
@@ -63,6 +84,27 @@ const Navbar = () => {
                   {item.label}
                 </NavLink>
               ))}
+              {user && role ? (
+                <NavLink
+                  to="/dashboard"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 text-base font-medium text-muted-foreground transition-colors hover:text-primary p-2 rounded-lg hover:bg-muted"
+                  activeClassName="text-primary bg-muted"
+                >
+                  <LayoutDashboard className="h-5 w-5" />
+                  Painel
+                </NavLink>
+              ) : (
+                <NavLink
+                  to="/login"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 text-base font-medium text-muted-foreground transition-colors hover:text-primary p-2 rounded-lg hover:bg-muted"
+                  activeClassName="text-primary bg-muted"
+                >
+                  <LogIn className="h-5 w-5" />
+                  Entrar
+                </NavLink>
+              )}
             </div>
           </SheetContent>
         </Sheet>
