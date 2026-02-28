@@ -12,7 +12,7 @@ L.Icon.Default.mergeOptions({
 });
 
 interface Farmacia {
-  id: number;
+  id: number | string;
   nome: string;
   endereco: string;
   telefone: string;
