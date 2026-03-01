@@ -5,15 +5,17 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Navbar from "@/components/Navbar";
 import { useNavigate } from "react-router-dom";
+import ComparacaoPrecos from "@/components/ComparacaoPrecos";
 
 const Home = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
   const navigate = useNavigate();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchTerm.trim()) {
-      navigate(`/medicamentos?search=${encodeURIComponent(searchTerm)}`);
+      setActiveSearch(searchTerm.trim());
     }
   };
 
@@ -85,8 +87,10 @@ const Home = () => {
               </Button>
             </div>
           </form>
+          
+          {/* Inline search results with price comparison */}
+          <ComparacaoPrecos searchTerm={activeSearch} />
         </div>
-
         {/* Features Grid */}
         <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-3">
           {features.map((feature, index) => (
