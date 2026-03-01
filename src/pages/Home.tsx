@@ -1,21 +1,38 @@
-import { useState } from "react";
-import { Search, Pill, MapPin, TrendingUp } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Pill, MapPin, TrendingUp, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Navbar from "@/components/Navbar";
 import { useNavigate } from "react-router-dom";
 import ComparacaoPrecos from "@/components/ComparacaoPrecos";
+import { supabase } from "@/integrations/supabase/client";
 
 const Home = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
+  const [categoriaId, setCategoriaId] = useState<string>("");
+  const [activeCategoriaId, setActiveCategoriaId] = useState<string>("");
+  const [categorias, setCategorias] = useState<{ id: string; nome: string }[]>([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchCategorias = async () => {
+      const { data } = await supabase
+        .from("categorias")
+        .select("id, nome")
+        .order("nome");
+      setCategorias(data ?? []);
+    };
+    fetchCategorias();
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchTerm.trim()) {
       setActiveSearch(searchTerm.trim());
+      setActiveCategoriaId(categoriaId);
     }
   };
 
@@ -82,6 +99,20 @@ const Home = () => {
                   className="h-14 pl-12 pr-4 text-base shadow-sm"
                 />
               </div>
+              <Select value={categoriaId} onValueChange={setCategoriaId}>
+                <SelectTrigger className="h-14 w-[180px] shadow-sm">
+                  <Filter className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <SelectValue placeholder="Categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  {categorias.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button type="submit" size="lg" className="h-14 px-8 font-semibold shadow-sm">
                 Pesquisar
               </Button>
@@ -89,7 +120,7 @@ const Home = () => {
           </form>
           
           {/* Inline search results with price comparison */}
-          <ComparacaoPrecos searchTerm={activeSearch} />
+          <ComparacaoPrecos searchTerm={activeSearch} categoriaId={activeCategoriaId === "all" ? "" : activeCategoriaId} />
         </div>
         {/* Features Grid */}
         <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-3">
