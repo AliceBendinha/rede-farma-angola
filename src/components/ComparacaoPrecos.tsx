@@ -23,9 +23,10 @@ interface GroupedMed {
 
 interface Props {
   searchTerm: string;
+  categoriaId?: string;
 }
 
-const ComparacaoPrecos = ({ searchTerm }: Props) => {
+const ComparacaoPrecos = ({ searchTerm, categoriaId }: Props) => {
   const [grouped, setGrouped] = useState<GroupedMed[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -35,13 +36,19 @@ const ComparacaoPrecos = ({ searchTerm }: Props) => {
       return;
     }
 
-    const fetch = async () => {
+    const fetchData = async () => {
       setLoading(true);
-      const { data } = await supabase
+      let query = supabase
         .from("medicamentos")
         .select("id, nome, descricao, preco, servicos, farmacias(nome, endereco)")
         .or(`nome.ilike.%${searchTerm}%,descricao.ilike.%${searchTerm}%`)
         .order("preco", { ascending: true });
+
+      if (categoriaId) {
+        query = query.eq("categoria_id", categoriaId);
+      }
+
+      const { data } = await query;
 
       const results = (data as unknown as MedResult[]) ?? [];
 
@@ -64,8 +71,8 @@ const ComparacaoPrecos = ({ searchTerm }: Props) => {
       setLoading(false);
     };
 
-    fetch();
-  }, [searchTerm]);
+    fetchData();
+  }, [searchTerm, categoriaId]);
 
   if (!searchTerm.trim()) return null;
 
