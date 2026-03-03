@@ -80,7 +80,6 @@ export type Database = {
           id: string
           nome: string
           preco: number
-          servicos: string | null
           updated_at: string
         }
         Insert: {
@@ -91,7 +90,6 @@ export type Database = {
           id?: string
           nome: string
           preco?: number
-          servicos?: string | null
           updated_at?: string
         }
         Update: {
@@ -102,7 +100,6 @@ export type Database = {
           id?: string
           nome?: string
           preco?: number
-          servicos?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -145,6 +142,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      servicos: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          farmacia_id: string
+          id: string
+          imagem_url: string | null
+          nome: string
+          preco: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          farmacia_id: string
+          id?: string
+          imagem_url?: string | null
+          nome: string
+          preco?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          farmacia_id?: string
+          id?: string
+          imagem_url?: string | null
+          nome?: string
+          preco?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicos_farmacia_id_fkey"
+            columns: ["farmacia_id"]
+            isOneToOne: false
+            referencedRelation: "farmacias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

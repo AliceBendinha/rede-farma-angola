@@ -10,7 +10,6 @@ interface MedResult {
   nome: string;
   descricao: string | null;
   preco: number;
-  servicos: string | null;
   farmacias: { nome: string; endereco: string } | null;
 }
 
@@ -40,7 +39,7 @@ const ComparacaoPrecos = ({ searchTerm, categoriaId }: Props) => {
       setLoading(true);
       let query = supabase
         .from("medicamentos")
-        .select("id, nome, descricao, preco, servicos, farmacias(nome, endereco)")
+        .select("id, nome, descricao, preco, farmacias(nome, endereco)")
         .or(`nome.ilike.%${searchTerm}%,descricao.ilike.%${searchTerm}%`)
         .order("preco", { ascending: true });
 
