@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { Categoria } from "./FarmaciaDashboard";
 
@@ -18,6 +18,7 @@ interface Medicamento {
   categoria_id: string | null;
   preco: number;
   descricao: string | null;
+  imagem_url: string | null;
 }
 
 interface Props {
@@ -31,6 +32,7 @@ const emptyForm = { nome: "", categoria_id: "", preco: "", descricao: "" };
 const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) => {
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([]);
   const [form, setForm] = useState(emptyForm);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -42,6 +44,17 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
   };
 
   useEffect(() => { fetchMedicamentos(); }, [farmaciaId]);
+
+  const uploadImage = async (file: File, medId: string): Promise<string | null> => {
+    if (file.size > 5 * 1024 * 1024) { toast.error("Imagem muito grande (máx 5MB)"); return null; }
+    if (!file.type.startsWith("image/")) { toast.error("Apenas imagens são permitidas"); return null; }
+    const ext = file.name.split(".").pop();
+    const path = `${farmaciaId}/${medId}.${ext}`;
+    const { error } = await supabase.storage.from("medicamentos").upload(path, file, { upsert: true });
+    if (error) { toast.error("Erro ao enviar imagem"); return null; }
+    const { data } = supabase.storage.from("medicamentos").getPublicUrl(path);
+    return data.publicUrl;
+  };
 
   const handleAddCategoria = async () => {
     if (!newCategoria.trim()) return;
@@ -66,17 +79,29 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
       descricao: form.descricao || null,
     };
 
+    let savedId = editingId;
+
     if (editingId) {
       const { error } = await supabase.from("medicamentos").update(medData).eq("id", editingId);
-      if (error) toast.error("Erro ao atualizar"); else toast.success("Medicamento atualizado");
+      if (error) { toast.error("Erro ao atualizar"); setLoading(false); return; }
     } else {
-      const { error } = await supabase.from("medicamentos").insert(medData);
-      if (error) toast.error("Erro ao criar: " + error.message); else toast.success("Medicamento adicionado");
+      const { data, error } = await supabase.from("medicamentos").insert(medData).select("id").single();
+      if (error || !data) { toast.error("Erro ao criar: " + (error?.message ?? "")); setLoading(false); return; }
+      savedId = data.id;
     }
 
+    if (imageFile && savedId) {
+      const url = await uploadImage(imageFile, savedId);
+      if (url) {
+        await supabase.from("medicamentos").update({ imagem_url: url }).eq("id", savedId);
+      }
+    }
+
+    toast.success(editingId ? "Medicamento atualizado" : "Medicamento adicionado");
     setLoading(false);
     setOpen(false);
     setForm(emptyForm);
+    setImageFile(null);
     setEditingId(null);
     fetchMedicamentos();
   };
@@ -84,6 +109,7 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
   const handleEdit = (m: Medicamento) => {
     setForm({ nome: m.nome, categoria_id: m.categoria_id ?? "", preco: String(m.preco), descricao: m.descricao ?? "" });
     setEditingId(m.id);
+    setImageFile(null);
     setOpen(true);
   };
 
@@ -99,7 +125,7 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Medicamentos ({medicamentos.length})</CardTitle>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setForm(emptyForm); setEditingId(null); } }}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setForm(emptyForm); setEditingId(null); setImageFile(null); } }}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" />Novo Medicamento</Button>
           </DialogTrigger>
@@ -135,6 +161,11 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
                 <Label>Descrição</Label>
                 <Textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} rows={3} />
               </div>
+              <div className="space-y-2">
+                <Label>Imagem</Label>
+                <Input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] ?? null)} />
+                {imageFile && <p className="text-sm text-muted-foreground">{imageFile.name}</p>}
+              </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "A guardar..." : editingId ? "Atualizar" : "Adicionar"}
               </Button>
@@ -146,6 +177,7 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Imagem</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>Categoria</TableHead>
               <TableHead>Preço</TableHead>
@@ -155,6 +187,15 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
           <TableBody>
             {medicamentos.map((m) => (
               <TableRow key={m.id}>
+                <TableCell>
+                  {m.imagem_url ? (
+                    <img src={m.imagem_url} alt={m.nome} className="h-10 w-10 rounded object-cover" />
+                  ) : (
+                    <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
+                      <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                  )}
+                </TableCell>
                 <TableCell className="font-medium">{m.nome}</TableCell>
                 <TableCell>{getCategoriaName(m.categoria_id)}</TableCell>
                 <TableCell>{Number(m.preco).toLocaleString("pt-AO")} Kz</TableCell>
@@ -168,7 +209,7 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
             ))}
             {medicamentos.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhum medicamento cadastrado</TableCell>
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhum medicamento cadastrado</TableCell>
               </TableRow>
             )}
           </TableBody>
