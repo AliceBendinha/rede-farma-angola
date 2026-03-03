@@ -12,6 +12,7 @@ interface MedWithFarmacia {
   nome: string;
   descricao: string | null;
   preco: number;
+  imagem_url: string | null;
   farmacias: { nome: string; endereco: string } | null;
 }
 
@@ -23,7 +24,7 @@ const Medicamentos = () => {
   const fetchMedicamentos = async (query: string) => {
     let q = supabase
       .from("medicamentos")
-      .select("id, nome, descricao, preco, farmacias(nome, endereco)")
+      .select("id, nome, descricao, preco, imagem_url, farmacias(nome, endereco)")
       .order("nome");
 
     if (query.trim()) {
@@ -75,6 +76,7 @@ const Medicamentos = () => {
                 preco={Number(m.preco)}
                 farmacia={m.farmacias?.nome ?? "—"}
                 farmaciaEndereco={m.farmacias?.endereco ?? ""}
+                imagemUrl={m.imagem_url}
               />
             ))}
           </div>

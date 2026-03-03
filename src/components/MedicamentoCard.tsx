@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Pill, MapPin } from "lucide-react";
+import { Pill, MapPin, ImageIcon } from "lucide-react";
 
 interface MedicamentoCardProps {
   nome: string;
@@ -8,6 +8,7 @@ interface MedicamentoCardProps {
   preco: number;
   farmacia: string;
   farmaciaEndereco: string;
+  imagemUrl?: string | null;
 }
 
 const MedicamentoCard = ({
@@ -16,14 +17,24 @@ const MedicamentoCard = ({
   preco,
   farmacia,
   farmaciaEndereco,
+  imagemUrl,
 }: MedicamentoCardProps) => {
   return (
     <Card className="transition-all duration-300 hover:shadow-lg border-border">
+      {imagemUrl && (
+        <div className="aspect-video w-full overflow-hidden rounded-t-lg">
+          <img src={imagemUrl} alt={nome} className="h-full w-full object-cover" />
+        </div>
+      )}
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-              <Pill className="h-6 w-6 text-primary" />
+              {imagemUrl ? (
+                <ImageIcon className="h-6 w-6 text-primary" />
+              ) : (
+                <Pill className="h-6 w-6 text-primary" />
+              )}
             </div>
             <div>
               <CardTitle className="text-lg font-semibold text-foreground">

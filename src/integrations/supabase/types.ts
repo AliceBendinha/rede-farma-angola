@@ -78,6 +78,7 @@ export type Database = {
           descricao: string | null
           farmacia_id: string
           id: string
+          imagem_url: string | null
           nome: string
           preco: number
           updated_at: string
@@ -88,6 +89,7 @@ export type Database = {
           descricao?: string | null
           farmacia_id: string
           id?: string
+          imagem_url?: string | null
           nome: string
           preco?: number
           updated_at?: string
@@ -98,6 +100,7 @@ export type Database = {
           descricao?: string | null
           farmacia_id?: string
           id?: string
+          imagem_url?: string | null
           nome?: string
           preco?: number
           updated_at?: string
