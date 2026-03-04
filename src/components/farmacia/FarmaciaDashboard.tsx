@@ -2,13 +2,12 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut } from "lucide-react";
-import { toast } from "sonner";
+import { LogOut, BarChart3, Pill, Stethoscope } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import MedicamentosTab from "./MedicamentosTab";
 import ServicosTab from "./ServicosTab";
+import FarmaciaOverviewTab from "./FarmaciaOverviewTab";
 
 export interface Categoria {
   id: string;
@@ -18,13 +17,21 @@ export interface Categoria {
 const FarmaciaDashboard = () => {
   const { signOut, farmaciaId } = useAuth();
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [farmaNome, setFarmaNome] = useState("");
 
   const fetchCategorias = async () => {
     const { data } = await supabase.from("categorias").select("*").order("nome");
     setCategorias((data as Categoria[]) ?? []);
   };
 
-  useEffect(() => { fetchCategorias(); }, []);
+  useEffect(() => {
+    fetchCategorias();
+    if (farmaciaId) {
+      supabase.from("farmacias").select("nome").eq("id", farmaciaId).single().then(({ data }) => {
+        setFarmaNome(data?.nome ?? "");
+      });
+    }
+  }, [farmaciaId]);
 
   if (!farmaciaId) {
     return (
@@ -44,17 +51,21 @@ const FarmaciaDashboard = () => {
       <div className="container py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Painel Farmácia</h1>
-            <p className="text-muted-foreground">Gestão de medicamentos e serviços</p>
+            <h1 className="text-3xl font-bold font-heading text-foreground">Painel Farmácia</h1>
+            {farmaNome && <p className="text-muted-foreground">{farmaNome}</p>}
           </div>
           <Button variant="outline" onClick={signOut}><LogOut className="h-4 w-4 mr-2" />Sair</Button>
         </div>
 
-        <Tabs defaultValue="medicamentos">
-          <TabsList className="mb-4">
-            <TabsTrigger value="medicamentos">Medicamentos</TabsTrigger>
-            <TabsTrigger value="servicos">Serviços</TabsTrigger>
+        <Tabs defaultValue="overview">
+          <TabsList className="mb-6">
+            <TabsTrigger value="overview" className="gap-2"><BarChart3 className="h-4 w-4" />Resumo</TabsTrigger>
+            <TabsTrigger value="medicamentos" className="gap-2"><Pill className="h-4 w-4" />Medicamentos</TabsTrigger>
+            <TabsTrigger value="servicos" className="gap-2"><Stethoscope className="h-4 w-4" />Serviços</TabsTrigger>
           </TabsList>
+          <TabsContent value="overview">
+            <FarmaciaOverviewTab farmaciaId={farmaciaId} />
+          </TabsContent>
           <TabsContent value="medicamentos">
             <MedicamentosTab farmaciaId={farmaciaId} categorias={categorias} onCategoriasChange={fetchCategorias} />
           </TabsContent>
