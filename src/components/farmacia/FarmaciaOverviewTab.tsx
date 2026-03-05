@@ -145,6 +145,42 @@ const FarmaciaOverviewTab = ({ farmaciaId }: Props) => {
         </Card>
       </div>
 
+      {/* API Stats via JWT */}
+      <Card className="shadow-[var(--shadow-card)] border-primary/20">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            Estatísticas via Backend (JWT)
+          </CardTitle>
+          <Button variant="outline" size="sm" onClick={fetchApiStats} disabled={apiLoading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${apiLoading ? "animate-spin" : ""}`} />
+            {apiLoading ? "A carregar..." : "Carregar via API"}
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {apiStats ? (
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">Medicamentos</p>
+                <p className="text-2xl font-bold font-heading text-foreground">{apiStats.totalMedicamentos}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">Serviços</p>
+                <p className="text-2xl font-bold font-heading text-foreground">{apiStats.totalServicos}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">Preço Médio</p>
+                <p className="text-2xl font-bold font-heading text-primary">{apiStats.precoMedio.toLocaleString("pt-AO")} Kz</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-4">
+              Clique em "Carregar via API" para obter dados autenticados com JWT
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="shadow-[var(--shadow-card)]">
