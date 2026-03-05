@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { callFunction } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Pill, Stethoscope, TrendingUp, Package, BarChart3 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Pill, Stethoscope, TrendingUp, Package, BarChart3, ShieldCheck, RefreshCw } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { toast } from "sonner";
 
 interface Props {
   farmaciaId: string;
