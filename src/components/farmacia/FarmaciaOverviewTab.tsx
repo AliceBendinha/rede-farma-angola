@@ -31,6 +31,8 @@ const FarmaciaOverviewTab = ({ farmaciaId }: Props) => {
   });
   const [catData, setCatData] = useState<{ name: string; value: number }[]>([]);
   const [priceRanges, setPriceRanges] = useState<{ range: string; count: number }[]>([]);
+  const [apiStats, setApiStats] = useState<{ farmacia: string; totalMedicamentos: number; totalServicos: number; precoMedio: number } | null>(null);
+  const [apiLoading, setApiLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
