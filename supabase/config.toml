@@ -1,1 +1,4 @@
 project_id = "kcxhrcquzsqyydoplmdt"
+
+[functions.farmacia-stats]
+verify_jwt = false
