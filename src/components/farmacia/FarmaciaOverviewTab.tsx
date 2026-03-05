@@ -84,6 +84,19 @@ const FarmaciaOverviewTab = ({ farmaciaId }: Props) => {
     fetchData();
   }, [farmaciaId]);
 
+  const fetchApiStats = async () => {
+    setApiLoading(true);
+    try {
+      const data = await callFunction<{ farmacia: string; totalMedicamentos: number; totalServicos: number; precoMedio: number }>("farmacia-stats");
+      setApiStats(data);
+      toast.success("Dados obtidos via JWT");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao chamar API");
+    } finally {
+      setApiLoading(false);
+    }
+  };
+
   const statCards = [
     { title: "Medicamentos", value: stats.totalMedicamentos, icon: Pill, color: "text-primary" },
     { title: "Serviços", value: stats.totalServicos, icon: Stethoscope, color: "text-secondary" },
