@@ -10,6 +10,7 @@ import Farmacias from "./pages/Farmacias";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import FarmaciaDetalhes from "./pages/FarmaciaDetalhes";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/medicamentos" element={<Medicamentos />} />
             <Route path="/farmacias" element={<Farmacias />} />
+            <Route path="/farmacias/:id" element={<FarmaciaDetalhes />} />
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="*" element={<NotFound />} />
