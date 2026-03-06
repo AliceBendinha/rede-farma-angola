@@ -96,7 +96,7 @@ const Farmacias = () => {
             {filteredFarmacias.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {filteredFarmacias.map((f) => (
-                  <FarmaciaCard key={f.id} nome={f.nome} endereco={f.endereco} telefone={f.telefone ?? ""} horario={f.horario ?? ""} distancia={f.distancia || undefined} latitude={f.latitude} longitude={f.longitude} />
+                  <FarmaciaCard key={f.id} id={f.id} nome={f.nome} endereco={f.endereco} telefone={f.telefone ?? ""} horario={f.horario ?? ""} distancia={f.distancia || undefined} latitude={f.latitude} longitude={f.longitude} />
                 ))}
               </div>
             ) : (

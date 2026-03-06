@@ -1,9 +1,11 @@
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Phone, Clock, Navigation } from "lucide-react";
+import { MapPin, Phone, Clock, Navigation, Tag } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface FarmaciaCardProps {
+  id?: string;
   nome: string;
   endereco: string;
   telefone: string;
@@ -14,6 +16,7 @@ interface FarmaciaCardProps {
 }
 
 const FarmaciaCard = ({
+  id,
   nome,
   endereco,
   telefone,
@@ -80,6 +83,16 @@ const FarmaciaCard = ({
           </Button>
         </a>
       </CardFooter>
+      {id && (
+        <div className="px-6 pb-6">
+          <Link to={`/farmacias/${id}`}>
+            <Button variant="ghost" className="w-full gap-2 text-primary hover:text-primary">
+              <Tag className="h-4 w-4" />
+              Ver Categorias
+            </Button>
+          </Link>
+        </div>
+      )}
     </Card>
   );
 };
