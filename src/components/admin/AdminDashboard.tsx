@@ -8,7 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Trash2, LogOut, MapPin, BarChart3, Building2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Pencil, Trash2, LogOut, MapPin, BarChart3, Building2, UserPlus, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import AdminOverviewTab from "./AdminOverviewTab";
@@ -24,7 +26,12 @@ interface Farmacia {
   user_id: string | null;
 }
 
-const emptyForm = { nome: "", endereco: "", latitude: "", longitude: "", telefone: "", horario: "", user_email: "" };
+interface AuthUser {
+  id: string;
+  email: string;
+}
+
+const emptyForm = { nome: "", endereco: "", latitude: "", longitude: "", telefone: "", horario: "", user_email: "", user_id: "" };
 
 const AdminDashboard = () => {
   const { signOut } = useAuth();
@@ -33,21 +40,62 @@ const AdminDashboard = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState<AuthUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   const fetchFarmacias = async () => {
     const { data } = await supabase.from("farmacias").select("*").order("nome");
     setFarmacias((data as Farmacia[]) ?? []);
   };
 
-  useEffect(() => { fetchFarmacias(); }, []);
+  const fetchUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data, error } = await supabase.functions.invoke("list-users", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (error) {
+        console.error("Erro ao carregar utilizadores:", error);
+      } else {
+        setUsers(data?.users ?? []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFarmacias();
+    fetchUsers();
+  }, []);
+
+  // Users already associated to a pharmacy
+  const associatedUserIds = new Set(farmacias.filter((f) => f.user_id).map((f) => f.user_id!));
+
+  // Available users for assignment (not already linked, excluding the one being edited)
+  const availableUsers = users.filter(
+    (u) => !associatedUserIds.has(u.id) || (editingId && farmacias.find((f) => f.id === editingId)?.user_id === u.id)
+  );
+
+  const getUserEmail = (userId: string | null) => {
+    if (!userId) return null;
+    return users.find((u) => u.id === userId)?.email ?? null;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    let userId: string | null = null;
+    let userId: string | null = form.user_id || null;
 
-    if (form.user_email.trim()) {
+    // If creating new and email provided, create user
+    if (!editingId && form.user_email.trim() && !userId) {
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: form.user_email.trim(),
         password: "Farmacia2024!",
@@ -62,7 +110,6 @@ const AdminDashboard = () => {
 
       if (signUpData?.user) {
         userId = signUpData.user.id;
-        await supabase.from("user_roles").upsert({ user_id: userId, role: "farmacia" as any });
       }
     }
 
@@ -73,7 +120,7 @@ const AdminDashboard = () => {
       longitude: parseFloat(form.longitude),
       telefone: form.telefone || null,
       horario: form.horario || null,
-      ...(userId ? { user_id: userId } : {}),
+      user_id: userId,
     };
 
     if (editingId) {
@@ -100,6 +147,7 @@ const AdminDashboard = () => {
       telefone: f.telefone ?? "",
       horario: f.horario ?? "",
       user_email: "",
+      user_id: f.user_id ?? "",
     });
     setEditingId(f.id);
     setOpen(true);
@@ -109,6 +157,12 @@ const AdminDashboard = () => {
     if (!confirm("Tem certeza que deseja eliminar esta farmácia?")) return;
     const { error } = await supabase.from("farmacias").delete().eq("id", id);
     if (error) { toast.error("Erro ao eliminar"); } else { toast.success("Farmácia eliminada"); fetchFarmacias(); }
+  };
+
+  const handleUnlinkUser = async (farmaciaId: string) => {
+    if (!confirm("Deseja desassociar o utilizador desta farmácia?")) return;
+    const { error } = await supabase.from("farmacias").update({ user_id: null }).eq("id", farmaciaId);
+    if (error) { toast.error("Erro ao desassociar"); } else { toast.success("Utilizador desassociado"); fetchFarmacias(); }
   };
 
   const handleGetLocation = () => {
@@ -187,13 +241,49 @@ const AdminDashboard = () => {
                         <Label>Horário</Label>
                         <Input value={form.horario} onChange={(e) => setForm({ ...form, horario: e.target.value })} placeholder="Ex: Seg-Sex: 8h-20h" />
                       </div>
-                      {!editingId && (
-                        <div className="space-y-2">
-                          <Label>Email do utilizador farmácia</Label>
-                          <Input type="email" value={form.user_email} onChange={(e) => setForm({ ...form, user_email: e.target.value })} placeholder="Cria conta com password padrão" />
-                          <p className="text-xs text-muted-foreground">Password padrão: Farmacia2024!</p>
-                        </div>
-                      )}
+
+                      {/* User association */}
+                      <div className="space-y-2 rounded-lg border border-border p-4 bg-accent/30">
+                        <Label className="flex items-center gap-2 text-sm font-semibold">
+                          <UserPlus className="h-4 w-4 text-primary" />
+                          Associar Utilizador
+                        </Label>
+
+                        {availableUsers.length > 0 ? (
+                          <Select
+                            value={form.user_id}
+                            onValueChange={(v) => setForm({ ...form, user_id: v === "__none__" ? "" : v, user_email: "" })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecionar utilizador existente..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">Nenhum</SelectItem>
+                              {availableUsers.map((u) => (
+                                <SelectItem key={u.id} value={u.id}>
+                                  {u.email}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">Todos os utilizadores já estão associados.</p>
+                        )}
+
+                        {!editingId && !form.user_id && (
+                          <div className="space-y-2 pt-2 border-t border-border mt-2">
+                            <Label className="text-xs text-muted-foreground">Ou criar novo utilizador:</Label>
+                            <Input
+                              type="email"
+                              value={form.user_email}
+                              onChange={(e) => setForm({ ...form, user_email: e.target.value })}
+                              placeholder="email@exemplo.com"
+                            />
+                            <p className="text-xs text-muted-foreground">Password padrão: Farmacia2024!</p>
+                          </div>
+                        )}
+                      </div>
+
                       <Button type="submit" className="w-full" disabled={loading}>
                         {loading ? "A guardar..." : editingId ? "Atualizar" : "Criar"}
                       </Button>
@@ -208,29 +298,52 @@ const AdminDashboard = () => {
                       <TableHead>Nome</TableHead>
                       <TableHead>Endereço</TableHead>
                       <TableHead>Telefone</TableHead>
-                      <TableHead>Horário</TableHead>
+                      <TableHead>Utilizador</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {farmacias.map((f) => (
-                      <TableRow key={f.id}>
-                        <TableCell className="font-medium">{f.nome}</TableCell>
-                        <TableCell>{f.endereco}</TableCell>
-                        <TableCell>{f.telefone ?? "—"}</TableCell>
-                        <TableCell>{f.horario ?? "—"}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(f)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(f.id)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {farmacias.map((f) => {
+                      const email = getUserEmail(f.user_id);
+                      return (
+                        <TableRow key={f.id}>
+                          <TableCell className="font-medium">{f.nome}</TableCell>
+                          <TableCell>{f.endereco}</TableCell>
+                          <TableCell>{f.telefone ?? "—"}</TableCell>
+                          <TableCell>
+                            {email ? (
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="gap-1 text-xs">
+                                  <UserCheck className="h-3 w-3" />
+                                  {email}
+                                </Badge>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => handleUnlinkUser(f.id)}
+                                  title="Desassociar utilizador"
+                                >
+                                  <UserX className="h-3 w-3 text-destructive" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground italic">Sem utilizador</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="icon" onClick={() => handleEdit(f)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDelete(f.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                     {farmacias.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
