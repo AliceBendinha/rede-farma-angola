@@ -44,11 +44,13 @@ const ServicosTab = ({ farmaciaId }: Props) => {
       toast.error("Ficheiro demasiado grande (máx. 5MB)");
       return null;
     }
-    if (!file.type.startsWith("image/")) {
-      toast.error("Apenas imagens são permitidas");
+    const allowedMimes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowedMimes.includes(file.type)) {
+      toast.error("Apenas imagens JPG, PNG, GIF ou WebP são permitidas");
       return null;
     }
-    const ext = file.name.split(".").pop();
+    const mimeToExt: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp" };
+    const ext = mimeToExt[file.type];
     const path = `${farmaciaId}/${servicoId}.${ext}`;
     const { error } = await supabase.storage.from("servicos").upload(path, file, { upsert: true });
     if (error) { toast.error("Erro ao enviar imagem"); return null; }

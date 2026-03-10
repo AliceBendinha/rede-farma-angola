@@ -47,8 +47,10 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
 
   const uploadImage = async (file: File, medId: string): Promise<string | null> => {
     if (file.size > 5 * 1024 * 1024) { toast.error("Imagem muito grande (máx 5MB)"); return null; }
-    if (!file.type.startsWith("image/")) { toast.error("Apenas imagens são permitidas"); return null; }
-    const ext = file.name.split(".").pop();
+    const allowedMimes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowedMimes.includes(file.type)) { toast.error("Apenas imagens JPG, PNG, GIF ou WebP são permitidas"); return null; }
+    const mimeToExt: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp" };
+    const ext = mimeToExt[file.type];
     const path = `${farmaciaId}/${medId}.${ext}`;
     const { error } = await supabase.storage.from("medicamentos").upload(path, file, { upsert: true });
     if (error) { toast.error("Erro ao enviar imagem"); return null; }
