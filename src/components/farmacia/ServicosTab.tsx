@@ -40,6 +40,14 @@ const ServicosTab = ({ farmaciaId }: Props) => {
   useEffect(() => { fetchServicos(); }, [farmaciaId]);
 
   const uploadImage = async (file: File, servicoId: string): Promise<string | null> => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ficheiro demasiado grande (máx. 5MB)");
+      return null;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Apenas imagens são permitidas");
+      return null;
+    }
     const ext = file.name.split(".").pop();
     const path = `${farmaciaId}/${servicoId}.${ext}`;
     const { error } = await supabase.storage.from("servicos").upload(path, file, { upsert: true });
