@@ -94,22 +94,30 @@ const AdminDashboard = () => {
 
     let userId: string | null = form.user_id || null;
 
-    // If creating new and email provided, create user
+    // If creating new and email provided, create user via edge function
     if (!editingId && form.user_email.trim() && !userId) {
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: form.user_email.trim(),
-        password: "Farmacia2024!",
-        options: { data: { nome: form.nome } },
-      });
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { toast.error("Sessão expirada"); setLoading(false); return; }
 
-      if (signUpError && !signUpError.message.includes("already registered")) {
-        toast.error("Erro ao criar utilizador: " + signUpError.message);
+        const { data: createData, error: createError } = await supabase.functions.invoke("create-farmacia-user", {
+          body: { email: form.user_email.trim(), nome: form.nome },
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+
+        if (createError) {
+          toast.error("Erro ao criar utilizador: " + (createError.message ?? "Erro desconhecido"));
+          setLoading(false);
+          return;
+        }
+
+        if (createData?.user?.id) {
+          userId = createData.user.id;
+        }
+      } catch (err: any) {
+        toast.error("Erro ao criar utilizador: " + (err?.message ?? ""));
         setLoading(false);
         return;
-      }
-
-      if (signUpData?.user) {
-        userId = signUpData.user.id;
       }
     }
 
