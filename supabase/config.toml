@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.list-users]
 verify_jwt = false
+
+[functions.create-farmacia-user]
+verify_jwt = false

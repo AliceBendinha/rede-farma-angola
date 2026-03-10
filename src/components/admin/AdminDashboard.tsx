@@ -287,7 +287,7 @@ const AdminDashboard = () => {
                               onChange={(e) => setForm({ ...form, user_email: e.target.value })}
                               placeholder="email@exemplo.com"
                             />
-                            <p className="text-xs text-muted-foreground">Password padrão: Farmacia2024!</p>
+                            <p className="text-xs text-muted-foreground">O utilizador receberá acesso com uma password temporária segura.</p>
                           </div>
                         )}
                       </div>
