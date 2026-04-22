@@ -37,7 +37,11 @@ const Farmacias = () => {
   const [farmacias, setFarmacias] = useState<FarmaciaDB[]>([]);
 
   useEffect(() => {
-    supabase.from("farmacias").select("*").order("nome").then(({ data }) => {
+    supabase
+      .from("farmacias")
+      .select("id, nome, endereco, latitude, longitude, telefone, horario")
+      .order("nome")
+      .then(({ data }) => {
       setFarmacias((data as FarmaciaDB[]) ?? []);
     });
   }, []);
