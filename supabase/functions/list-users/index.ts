@@ -24,10 +24,13 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify caller is admin
-    const anonClient = createClient(supabaseUrl, supabaseAnonKey);
+    // Verify caller is admin (pass user token so RLS sees auth.uid())
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await anonClient.auth.getUser(token);
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data: { user }, error: authError } = await userClient.auth.getUser(token);
 
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Token inválido" }), {
@@ -36,15 +39,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check admin role
-    const { data: roleData } = await anonClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle();
+    // Check admin role using has_role RPC (security definer, bypasses RLS)
+    const { data: isAdmin, error: roleError } = await userClient.rpc("has_role", {
+      _user_id: user.id,
+      _role: "admin",
+    });
 
-    if (!roleData) {
+    if (roleError || !isAdmin) {
       return new Response(JSON.stringify({ error: "Apenas administradores" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
