@@ -145,25 +145,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="border-t bg-muted/30 py-16">
-        <div className="container">
-          <div className="mx-auto grid max-w-4xl gap-8 md:grid-cols-3">
-            <div className="text-center">
-              <div className="mb-2 text-4xl font-bold text-primary">250+</div>
-              <div className="text-sm text-muted-foreground">Farmácias Registadas</div>
-            </div>
-            <div className="text-center">
-              <div className="mb-2 text-4xl font-bold text-primary">5.000+</div>
-              <div className="text-sm text-muted-foreground">Medicamentos Disponíveis</div>
-            </div>
-            <div className="text-center">
-              <div className="mb-2 text-4xl font-bold text-primary">15.000+</div>
-              <div className="text-sm text-muted-foreground">Pesquisas Mensais</div>
-            </div>
-          </div>
-        </div>
-      </section>
       <Footer />
     </div>
   );
