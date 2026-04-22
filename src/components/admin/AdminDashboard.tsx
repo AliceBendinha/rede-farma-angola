@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, LogOut, MapPin, BarChart3, Building2, UserPlus, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import AdminOverviewTab from "./AdminOverviewTab";
 
 interface Farmacia {
@@ -186,9 +187,9 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      <div className="container py-8">
+      <div className="container py-8 flex-1">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold font-heading text-foreground">Painel Administrador</h1>
@@ -366,6 +367,7 @@ const AdminDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+      <Footer />
     </div>
   );
 };
