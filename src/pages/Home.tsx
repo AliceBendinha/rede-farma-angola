@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, Pill, MapPin, TrendingUp, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import Footer from "@/components/Footer";
 import { useNavigate } from "react-router-dom";
 import ComparacaoPrecos from "@/components/ComparacaoPrecos";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const Home = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -17,32 +17,46 @@ const Home = () => {
   const [categoriaId, setCategoriaId] = useState<string>("");
   const [activeCategoriaId, setActiveCategoriaId] = useState<string>("");
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  // Filtro dinâmico: lista apenas categorias que têm pelo menos um medicamento associado
+  // Filtro dinâmico: lista apenas categorias com medicamentos via join único
   const { data: categorias = [] } = useQuery({
     queryKey: ["categorias-com-medicamentos"],
     queryFn: async () => {
-      const { data: meds } = await supabase
-        .from("medicamentos")
-        .select("categoria_id")
-        .not("categoria_id", "is", null);
-
-      const ids = Array.from(
-        new Set((meds ?? []).map((m) => m.categoria_id as string))
-      );
-
-      if (ids.length === 0) return [];
-
-      const { data: cats } = await supabase
+      // Inner join: traz apenas categorias referenciadas por pelo menos 1 medicamento
+      const { data, error } = await supabase
         .from("categorias")
-        .select("id, nome")
-        .in("id", ids)
+        .select("id, nome, medicamentos!inner(id)")
         .order("nome");
 
-      return cats ?? [];
+      if (error) return [];
+
+      // Deduplicar (cada categoria pode vir repetida pelo join)
+      const seen = new Set<string>();
+      return (data ?? [])
+        .filter((c) => (seen.has(c.id) ? false : (seen.add(c.id), true)))
+        .map((c) => ({ id: c.id, nome: c.nome }));
     },
     staleTime: 60_000,
   });
+
+  // Realtime: invalida a lista quando medicamentos mudam
+  useEffect(() => {
+    const channel = supabase
+      .channel("home-categorias-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "medicamentos" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["categorias-com-medicamentos"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
