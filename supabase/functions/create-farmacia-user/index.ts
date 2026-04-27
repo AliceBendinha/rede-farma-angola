@@ -24,31 +24,32 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify caller is admin
-    const anonClient = createClient(supabaseUrl, supabaseAnonKey);
+    // Verify caller via JWT + has_role RPC (security definer)
     const token = authHeader.replace("Bearer ", "");
-    const {
-      data: { user },
-      error: authError,
-    } = await anonClient.auth.getUser(token);
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Token inválido" }), {
+    const { data: claimsData, error: claimsError } =
+      await userClient.auth.getClaims(token);
+
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Não autenticado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Check admin role
-    const { data: roleData } = await anonClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle();
+    const userId = claimsData.claims.sub as string;
 
-    if (!roleData) {
-      return new Response(JSON.stringify({ error: "Apenas administradores" }), {
+    const { data: isAdmin, error: roleError } = await userClient.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+
+    if (roleError || !isAdmin) {
+      return new Response(JSON.stringify({ error: "Acesso negado" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
