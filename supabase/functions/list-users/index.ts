@@ -13,8 +13,8 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Não autenticado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -30,23 +30,25 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: `Bearer ${token}` } },
       auth: { autoRefreshToken: false, persistSession: false },
     });
-    const { data: { user }, error: authError } = await userClient.auth.getUser(token);
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
 
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Token inválido" }), {
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Não autenticado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const callerId = claimsData.claims.sub as string;
+
     // Check admin role using has_role RPC (security definer, bypasses RLS)
     const { data: isAdmin, error: roleError } = await userClient.rpc("has_role", {
-      _user_id: user.id,
+      _user_id: callerId,
       _role: "admin",
     });
 
     if (roleError || !isAdmin) {
-      return new Response(JSON.stringify({ error: "Apenas administradores" }), {
+      return new Response(JSON.stringify({ error: "Acesso negado" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -66,9 +68,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Return only id + email, exclude admin
+    // Return only id + email, exclude caller
     const filtered = (users ?? [])
-      .filter((u) => u.id !== user.id)
+      .filter((u) => u.id !== callerId)
       .map((u) => ({ id: u.id, email: u.email }));
 
     return new Response(JSON.stringify({ users: filtered }), {
