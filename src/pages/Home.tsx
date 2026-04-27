@@ -10,6 +10,11 @@ import { useNavigate } from "react-router-dom";
 import ComparacaoPrecos from "@/components/ComparacaoPrecos";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  CATEGORIAS_QUERY_KEY,
+  createCategoriasInvalidator,
+  fetchCategoriasComMedicamentos,
+} from "@/lib/categoriasFilter";
 
 const Home = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,35 +26,20 @@ const Home = () => {
 
   // Filtro dinâmico: lista apenas categorias com medicamentos via join único
   const { data: categorias = [] } = useQuery({
-    queryKey: ["categorias-com-medicamentos"],
-    queryFn: async () => {
-      // Inner join: traz apenas categorias referenciadas por pelo menos 1 medicamento
-      const { data, error } = await supabase
-        .from("categorias")
-        .select("id, nome, medicamentos!inner(id)")
-        .order("nome");
-
-      if (error) return [];
-
-      // Deduplicar (cada categoria pode vir repetida pelo join)
-      const seen = new Set<string>();
-      return (data ?? [])
-        .filter((c) => (seen.has(c.id) ? false : (seen.add(c.id), true)))
-        .map((c) => ({ id: c.id, nome: c.nome }));
-    },
+    queryKey: CATEGORIAS_QUERY_KEY,
+    queryFn: () => fetchCategoriasComMedicamentos(supabase),
     staleTime: 60_000,
   });
 
   // Realtime: invalida a lista quando medicamentos mudam
   useEffect(() => {
+    const handler = createCategoriasInvalidator(queryClient);
     const channel = supabase
       .channel("home-categorias-realtime")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "medicamentos" },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["categorias-com-medicamentos"] });
-        }
+        handler
       )
       .subscribe();
 
