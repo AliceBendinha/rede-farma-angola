@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Search, Pill, MapPin, TrendingUp, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,25 +9,40 @@ import Footer from "@/components/Footer";
 import { useNavigate } from "react-router-dom";
 import ComparacaoPrecos from "@/components/ComparacaoPrecos";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const Home = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
   const [categoriaId, setCategoriaId] = useState<string>("");
   const [activeCategoriaId, setActiveCategoriaId] = useState<string>("");
-  const [categorias, setCategorias] = useState<{ id: string; nome: string }[]>([]);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchCategorias = async () => {
-      const { data } = await supabase
+  // Filtro dinâmico: lista apenas categorias que têm pelo menos um medicamento associado
+  const { data: categorias = [] } = useQuery({
+    queryKey: ["categorias-com-medicamentos"],
+    queryFn: async () => {
+      const { data: meds } = await supabase
+        .from("medicamentos")
+        .select("categoria_id")
+        .not("categoria_id", "is", null);
+
+      const ids = Array.from(
+        new Set((meds ?? []).map((m) => m.categoria_id as string))
+      );
+
+      if (ids.length === 0) return [];
+
+      const { data: cats } = await supabase
         .from("categorias")
         .select("id, nome")
+        .in("id", ids)
         .order("nome");
-      setCategorias(data ?? []);
-    };
-    fetchCategorias();
-  }, []);
+
+      return cats ?? [];
+    },
+    staleTime: 60_000,
+  });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
