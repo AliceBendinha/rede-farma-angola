@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse body
-    const { email, nome } = await req.json();
+    const { email, nome, password } = await req.json();
 
     if (!email || typeof email !== "string" || !email.includes("@")) {
       return new Response(JSON.stringify({ error: "Email inválido" }), {
@@ -65,8 +65,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Generate a strong random password (user will need to reset)
-    const randomPassword = crypto.randomUUID() + "!Aa1";
+    // Use provided password if valid, otherwise generate strong random one
+    const customPassword =
+      typeof password === "string" && password.length >= 8 ? password : null;
+    if (password && !customPassword) {
+      return new Response(
+        JSON.stringify({ error: "Password deve ter pelo menos 8 caracteres" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    const finalPassword = customPassword ?? crypto.randomUUID() + "!Aa1";
+    const mustReset = !customPassword; // only force reset when auto-generated
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
@@ -75,9 +87,9 @@ Deno.serve(async (req) => {
     const { data: newUser, error: createError } =
       await adminClient.auth.admin.createUser({
         email: email.trim(),
-        password: randomPassword,
+        password: finalPassword,
         email_confirm: true,
-        user_metadata: { nome: nome || "", must_reset_password: true },
+        user_metadata: { nome: nome || "", must_reset_password: mustReset },
       });
 
     if (createError) {
@@ -93,7 +105,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         user: { id: newUser.user.id, email: newUser.user.email },
-        temp_password: randomPassword,
+        temp_password: mustReset ? finalPassword : null,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
