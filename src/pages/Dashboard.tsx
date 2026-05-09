@@ -16,6 +16,10 @@ const Dashboard = () => {
   }
 
   if (!user) return <Navigate to="/login" replace />;
+  const mustReset = Boolean(
+    (user.user_metadata as Record<string, unknown> | undefined)?.must_reset_password
+  );
+  if (mustReset) return <Navigate to="/reset-password" replace />;
   if (!role) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">

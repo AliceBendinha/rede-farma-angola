@@ -115,6 +115,16 @@ const AdminDashboard = () => {
         if (createData?.user?.id) {
           userId = createData.user.id;
         }
+
+        if (createData?.temp_password) {
+          try {
+            await navigator.clipboard?.writeText(createData.temp_password);
+          } catch { /* ignore */ }
+          toast.success(
+            `Utilizador criado. Password temporária: ${createData.temp_password} (copiada). Será pedida nova password no 1.º login.`,
+            { duration: 15000 }
+          );
+        }
       } catch (err: any) {
         toast.error("Erro ao criar utilizador: " + (err?.message ?? ""));
         setLoading(false);

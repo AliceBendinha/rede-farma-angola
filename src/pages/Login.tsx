@@ -17,14 +17,17 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
       toast.error("Credenciais inválidas");
       return;
     }
+    const mustReset = Boolean(
+      (data.user?.user_metadata as Record<string, unknown> | undefined)?.must_reset_password
+    );
     toast.success("Login efectuado com sucesso");
-    navigate("/dashboard");
+    navigate(mustReset ? "/reset-password" : "/dashboard");
   };
 
   return (
