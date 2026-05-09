@@ -32,7 +32,7 @@ interface AuthUser {
   email: string;
 }
 
-const emptyForm = { nome: "", endereco: "", latitude: "", longitude: "", telefone: "", horario: "", user_email: "", user_id: "" };
+const emptyForm = { nome: "", endereco: "", latitude: "", longitude: "", telefone: "", horario: "", user_email: "", user_id: "", user_password: "", reset_password: "" };
 
 const AdminDashboard = () => {
   const { signOut } = useAuth();
@@ -43,6 +43,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<AuthUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [resettingPwd, setResettingPwd] = useState(false);
 
   const fetchFarmacias = async () => {
     const { data } = await supabase.from("farmacias").select("*").order("nome");
@@ -102,7 +103,11 @@ const AdminDashboard = () => {
         if (!session) { toast.error("Sessão expirada"); setLoading(false); return; }
 
         const { data: createData, error: createError } = await supabase.functions.invoke("create-farmacia-user", {
-          body: { email: form.user_email.trim(), nome: form.nome },
+          body: {
+            email: form.user_email.trim(),
+            nome: form.nome,
+            password: form.user_password.trim() || undefined,
+          },
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
 
@@ -124,6 +129,8 @@ const AdminDashboard = () => {
             `Utilizador criado. Password temporária: ${createData.temp_password} (copiada). Será pedida nova password no 1.º login.`,
             { duration: 15000 }
           );
+        } else {
+          toast.success("Utilizador criado com a password definida.");
         }
       } catch (err: any) {
         toast.error("Erro ao criar utilizador: " + (err?.message ?? ""));
@@ -167,6 +174,8 @@ const AdminDashboard = () => {
       horario: f.horario ?? "",
       user_email: "",
       user_id: f.user_id ?? "",
+      user_password: "",
+      reset_password: "",
     });
     setEditingId(f.id);
     setOpen(true);
@@ -182,6 +191,31 @@ const AdminDashboard = () => {
     if (!confirm("Deseja desassociar o utilizador desta farmácia?")) return;
     const { error } = await supabase.from("farmacias").update({ user_id: null }).eq("id", farmaciaId);
     if (error) { toast.error("Erro ao desassociar"); } else { toast.success("Utilizador desassociado"); fetchFarmacias(); }
+  };
+
+  const handleResetPassword = async () => {
+    const editing = editingId ? farmacias.find((f) => f.id === editingId) : null;
+    const targetUserId = editing?.user_id;
+    if (!targetUserId) { toast.error("Sem utilizador associado"); return; }
+    if (form.reset_password.length < 8) { toast.error("Password deve ter pelo menos 8 caracteres"); return; }
+
+    setResettingPwd(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Sessão expirada"); return; }
+      const { error } = await supabase.functions.invoke("reset-farmacia-password", {
+        body: { user_id: targetUserId, password: form.reset_password, force_reset: false },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) {
+        toast.error("Erro ao redefinir password");
+      } else {
+        toast.success("Password redefinida com sucesso");
+        setForm((prev) => ({ ...prev, reset_password: "" }));
+      }
+    } finally {
+      setResettingPwd(false);
+    }
   };
 
   const handleGetLocation = () => {
@@ -298,7 +332,40 @@ const AdminDashboard = () => {
                               onChange={(e) => setForm({ ...form, user_email: e.target.value })}
                               placeholder="email@exemplo.com"
                             />
-                            <p className="text-xs text-muted-foreground">O utilizador receberá acesso com uma password temporária segura.</p>
+                            <Label className="text-xs text-muted-foreground">Password (opcional, mín. 8 caracteres):</Label>
+                            <Input
+                              type="password"
+                              value={form.user_password}
+                              onChange={(e) => setForm({ ...form, user_password: e.target.value })}
+                              placeholder="Deixe vazio para gerar automática"
+                              minLength={8}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Se vazio, será gerada uma password temporária e pedida nova no 1.º login.
+                            </p>
+                          </div>
+                        )}
+
+                        {editingId && form.user_id && (
+                          <div className="space-y-2 pt-2 border-t border-border mt-2">
+                            <Label className="text-xs text-muted-foreground">Redefinir password do utilizador:</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                type="password"
+                                value={form.reset_password}
+                                onChange={(e) => setForm({ ...form, reset_password: e.target.value })}
+                                placeholder="Nova password (mín. 8)"
+                                minLength={8}
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={handleResetPassword}
+                                disabled={resettingPwd || form.reset_password.length < 8}
+                              >
+                                {resettingPwd ? "..." : "Redefinir"}
+                              </Button>
+                            </div>
                           </div>
                         )}
                       </div>
