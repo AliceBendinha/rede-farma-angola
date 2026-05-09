@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
         email: email.trim(),
         password: randomPassword,
         email_confirm: true,
-        user_metadata: { nome: nome || "" },
+        user_metadata: { nome: nome || "", must_reset_password: true },
       });
 
     if (createError) {
@@ -91,7 +91,10 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ user: { id: newUser.user.id, email: newUser.user.email } }),
+      JSON.stringify({
+        user: { id: newUser.user.id, email: newUser.user.email },
+        temp_password: randomPassword,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
