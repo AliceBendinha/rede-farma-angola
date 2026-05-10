@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, LogOut, MapPin, BarChart3, Building2, UserPlus, UserCheck, UserX } from "lucide-react";
+import { Plus, Pencil, Trash2, LogOut, MapPin, BarChart3, Building2, UserPlus, UserCheck, UserX, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -48,6 +48,8 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState<AuthUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [resettingPwd, setResettingPwd] = useState(false);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [tempPasswordCopied, setTempPasswordCopied] = useState(false);
 
   const fetchFarmacias = async () => {
     const { data } = await supabase.from("farmacias").select("*").order("nome");
@@ -135,13 +137,9 @@ const AdminDashboard = () => {
         }
 
         if (createData?.temp_password) {
-          try {
-            await navigator.clipboard?.writeText(createData.temp_password);
-          } catch { /* ignore */ }
-          toast.success(
-            `Utilizador criado. Password temporária: ${createData.temp_password} (copiada). Será pedida nova password no 1.º login.`,
-            { duration: 15000 }
-          );
+          setTempPassword(createData.temp_password as string);
+          setTempPasswordCopied(false);
+          toast.success("Utilizador criado. Guarde a password temporária mostrada.");
         } else {
           toast.success("Utilizador criado com a password definida.");
         }
