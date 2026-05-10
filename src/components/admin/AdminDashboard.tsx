@@ -15,6 +15,10 @@ import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AdminOverviewTab from "./AdminOverviewTab";
+import {
+  PASSWORD_REQUIREMENTS,
+  validatePasswordStrength,
+} from "@/lib/passwordStrength";
 
 interface Farmacia {
   id: string;
@@ -98,6 +102,15 @@ const AdminDashboard = () => {
 
     // If creating new and email provided, create user via edge function
     if (!editingId && form.user_email.trim() && !userId) {
+      // Validate password strength only if a custom password was provided
+      if (form.user_password.trim()) {
+        const strength = validatePasswordStrength(form.user_password.trim());
+        if (!strength.valid) {
+          toast.error(strength.message ?? "Palavra-passe inválida");
+          setLoading(false);
+          return;
+        }
+      }
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) { toast.error("Sessão expirada"); setLoading(false); return; }
@@ -197,7 +210,8 @@ const AdminDashboard = () => {
     const editing = editingId ? farmacias.find((f) => f.id === editingId) : null;
     const targetUserId = editing?.user_id;
     if (!targetUserId) { toast.error("Sem utilizador associado"); return; }
-    if (form.reset_password.length < 8) { toast.error("Password deve ter pelo menos 8 caracteres"); return; }
+    const strength = validatePasswordStrength(form.reset_password);
+    if (!strength.valid) { toast.error(strength.message ?? "Palavra-passe inválida"); return; }
 
     setResettingPwd(true);
     try {
@@ -332,7 +346,7 @@ const AdminDashboard = () => {
                               onChange={(e) => setForm({ ...form, user_email: e.target.value })}
                               placeholder="email@exemplo.com"
                             />
-                            <Label className="text-xs text-muted-foreground">Password (opcional, mín. 8 caracteres):</Label>
+                            <Label className="text-xs text-muted-foreground">Password (opcional):</Label>
                             <Input
                               type="password"
                               value={form.user_password}
@@ -341,8 +355,13 @@ const AdminDashboard = () => {
                               minLength={8}
                             />
                             <p className="text-xs text-muted-foreground">
-                              Se vazio, será gerada uma password temporária e pedida nova no 1.º login.
+                              {PASSWORD_REQUIREMENTS} Se vazio, será gerada uma password temporária e pedida nova no 1.º login.
                             </p>
+                            {form.user_password.trim() && !validatePasswordStrength(form.user_password.trim()).valid && (
+                              <p className="text-xs text-destructive" role="alert">
+                                {validatePasswordStrength(form.user_password.trim()).message}
+                              </p>
+                            )}
                           </div>
                         )}
 
@@ -354,18 +373,24 @@ const AdminDashboard = () => {
                                 type="password"
                                 value={form.reset_password}
                                 onChange={(e) => setForm({ ...form, reset_password: e.target.value })}
-                                placeholder="Nova password (mín. 8)"
+                                placeholder="Nova password"
                                 minLength={8}
                               />
                               <Button
                                 type="button"
                                 variant="secondary"
                                 onClick={handleResetPassword}
-                                disabled={resettingPwd || form.reset_password.length < 8}
+                                disabled={resettingPwd || !validatePasswordStrength(form.reset_password).valid}
                               >
                                 {resettingPwd ? "..." : "Redefinir"}
                               </Button>
                             </div>
+                            <p className="text-xs text-muted-foreground">{PASSWORD_REQUIREMENTS}</p>
+                            {form.reset_password && !validatePasswordStrength(form.reset_password).valid && (
+                              <p className="text-xs text-destructive" role="alert">
+                                {validatePasswordStrength(form.reset_password).message}
+                              </p>
+                            )}
                           </div>
                         )}
                       </div>
