@@ -468,6 +468,64 @@ const AdminDashboard = () => {
         </Tabs>
       </div>
       <Footer />
+      <Dialog
+        open={tempPassword !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setTempPassword(null);
+            setTempPasswordCopied(false);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Password temporária gerada</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Guarde e partilhe esta password com o utilizador. Será pedida uma nova password no 1.º login.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                readOnly
+                value={tempPassword ?? ""}
+                className="font-mono"
+                onFocus={(e) => e.currentTarget.select()}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={async () => {
+                  if (!tempPassword) return;
+                  try {
+                    await navigator.clipboard.writeText(tempPassword);
+                    setTempPasswordCopied(true);
+                    toast.success("Password copiada");
+                  } catch {
+                    toast.error("Não foi possível copiar");
+                  }
+                }}
+              >
+                {tempPasswordCopied ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <Button
+              type="button"
+              className="w-full"
+              onClick={() => {
+                setTempPassword(null);
+                setTempPasswordCopied(false);
+              }}
+            >
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
