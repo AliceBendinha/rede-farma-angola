@@ -65,10 +65,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use provided password if valid, otherwise generate strong random one
-    const customPassword =
-      typeof password === "string" && password.length >= 8 ? password : null;
-    if (password && !customPassword) {
+    // Password is required and must meet strength requirements
+    if (typeof password !== "string" || password.length < 8) {
       return new Response(
         JSON.stringify({ error: "Password deve ter pelo menos 8 caracteres" }),
         {
@@ -77,7 +75,7 @@ Deno.serve(async (req) => {
         }
       );
     }
-    if (customPassword && (!/[A-Za-z]/.test(customPassword) || !/[0-9]/.test(customPassword))) {
+    if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
       return new Response(
         JSON.stringify({ error: "Password deve conter pelo menos uma letra e um número" }),
         {
@@ -86,8 +84,7 @@ Deno.serve(async (req) => {
         }
       );
     }
-    const finalPassword = customPassword ?? crypto.randomUUID() + "!Aa1";
-    const mustReset = !customPassword; // only force reset when auto-generated
+    const finalPassword = password;
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
@@ -98,7 +95,7 @@ Deno.serve(async (req) => {
         email: email.trim(),
         password: finalPassword,
         email_confirm: true,
-        user_metadata: { nome: nome || "", must_reset_password: mustReset },
+        user_metadata: { nome: nome || "", must_reset_password: false },
       });
 
     if (createError) {
@@ -114,7 +111,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         user: { id: newUser.user.id, email: newUser.user.email },
-        temp_password: mustReset ? finalPassword : null,
+        temp_password: null,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

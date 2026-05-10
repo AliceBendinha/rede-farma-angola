@@ -104,14 +104,17 @@ const AdminDashboard = () => {
 
     // If creating new and email provided, create user via edge function
     if (!editingId && form.user_email.trim() && !userId) {
-      // Validate password strength only if a custom password was provided
-      if (form.user_password.trim()) {
-        const strength = validatePasswordStrength(form.user_password.trim());
-        if (!strength.valid) {
-          toast.error(strength.message ?? "Palavra-passe inválida");
-          setLoading(false);
-          return;
-        }
+      // Password is required when creating a new user
+      if (!form.user_password.trim()) {
+        toast.error("Defina uma palavra-passe para o novo utilizador.");
+        setLoading(false);
+        return;
+      }
+      const strength = validatePasswordStrength(form.user_password.trim());
+      if (!strength.valid) {
+        toast.error(strength.message ?? "Palavra-passe inválida");
+        setLoading(false);
+        return;
       }
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -121,7 +124,7 @@ const AdminDashboard = () => {
           body: {
             email: form.user_email.trim(),
             nome: form.nome,
-            password: form.user_password.trim() || undefined,
+            password: form.user_password.trim(),
           },
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
@@ -344,16 +347,17 @@ const AdminDashboard = () => {
                               onChange={(e) => setForm({ ...form, user_email: e.target.value })}
                               placeholder="email@exemplo.com"
                             />
-                            <Label className="text-xs text-muted-foreground">Password (opcional):</Label>
+                            <Label className="text-xs text-muted-foreground">Password (obrigatória):</Label>
                             <Input
                               type="password"
                               value={form.user_password}
                               onChange={(e) => setForm({ ...form, user_password: e.target.value })}
-                              placeholder="Deixe vazio para gerar automática"
+                              placeholder="Defina a palavra-passe inicial"
+                              required
                               minLength={8}
                             />
                             <p className="text-xs text-muted-foreground">
-                              {PASSWORD_REQUIREMENTS} Se vazio, será gerada uma password temporária e pedida nova no 1.º login.
+                              {PASSWORD_REQUIREMENTS}
                             </p>
                             {form.user_password.trim() && !validatePasswordStrength(form.user_password.trim()).valid && (
                               <p className="text-xs text-destructive" role="alert">
