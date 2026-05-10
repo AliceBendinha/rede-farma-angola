@@ -8,6 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { KeyRound, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  PASSWORD_REQUIREMENTS,
+  validatePasswordStrength,
+} from "@/lib/passwordStrength";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -15,6 +19,7 @@ const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate("/login", { replace: true });
@@ -22,14 +27,18 @@ const ResetPassword = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 8) {
-      toast.error("A palavra-passe deve ter pelo menos 8 caracteres");
+    const strength = validatePasswordStrength(password);
+    if (!strength.valid) {
+      setError(strength.message ?? "Palavra-passe inválida");
+      toast.error(strength.message ?? "Palavra-passe inválida");
       return;
     }
     if (password !== confirm) {
+      setError("As palavras-passe não coincidem");
       toast.error("As palavras-passe não coincidem");
       return;
     }
+    setError(null);
     setSubmitting(true);
     const { error } = await supabase.auth.updateUser({
       password,
@@ -73,12 +82,16 @@ const ResetPassword = () => {
               <Input
                 id="password"
                 type="password"
-                placeholder="Mínimo 8 caracteres"
+                placeholder={PASSWORD_REQUIREMENTS}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (error) setError(null);
+                }}
                 required
                 minLength={8}
               />
+              <p className="text-xs text-muted-foreground">{PASSWORD_REQUIREMENTS}</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm">Confirmar palavra-passe</Label>
@@ -87,11 +100,19 @@ const ResetPassword = () => {
                 type="password"
                 placeholder="Repita a palavra-passe"
                 value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
+                onChange={(e) => {
+                  setConfirm(e.target.value);
+                  if (error) setError(null);
+                }}
                 required
                 minLength={8}
               />
             </div>
+            {error && (
+              <p className="text-sm text-destructive" role="alert">
+                {error}
+              </p>
+            )}
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting ? "A guardar..." : "Actualizar palavra-passe"}
             </Button>
