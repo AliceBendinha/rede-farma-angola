@@ -77,6 +77,15 @@ Deno.serve(async (req) => {
         }
       );
     }
+    if (customPassword && (!/[A-Za-z]/.test(customPassword) || !/[0-9]/.test(customPassword))) {
+      return new Response(
+        JSON.stringify({ error: "Password deve conter pelo menos uma letra e um número" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
     const finalPassword = customPassword ?? crypto.randomUUID() + "!Aa1";
     const mustReset = !customPassword; // only force reset when auto-generated
 

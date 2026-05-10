@@ -71,6 +71,15 @@ Deno.serve(async (req) => {
         }
       );
     }
+    if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+      return new Response(
+        JSON.stringify({ error: "Password deve conter pelo menos uma letra e um número" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
