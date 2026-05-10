@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, LogOut, MapPin, BarChart3, Building2, UserPlus, UserCheck, UserX } from "lucide-react";
+import { Plus, Pencil, Trash2, LogOut, MapPin, BarChart3, Building2, UserPlus, UserCheck, UserX, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -48,6 +48,8 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState<AuthUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [resettingPwd, setResettingPwd] = useState(false);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [tempPasswordCopied, setTempPasswordCopied] = useState(false);
 
   const fetchFarmacias = async () => {
     const { data } = await supabase.from("farmacias").select("*").order("nome");
@@ -135,13 +137,9 @@ const AdminDashboard = () => {
         }
 
         if (createData?.temp_password) {
-          try {
-            await navigator.clipboard?.writeText(createData.temp_password);
-          } catch { /* ignore */ }
-          toast.success(
-            `Utilizador criado. Password temporária: ${createData.temp_password} (copiada). Será pedida nova password no 1.º login.`,
-            { duration: 15000 }
-          );
+          setTempPassword(createData.temp_password as string);
+          setTempPasswordCopied(false);
+          toast.success("Utilizador criado. Guarde a password temporária mostrada.");
         } else {
           toast.success("Utilizador criado com a password definida.");
         }
@@ -470,6 +468,64 @@ const AdminDashboard = () => {
         </Tabs>
       </div>
       <Footer />
+      <Dialog
+        open={tempPassword !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setTempPassword(null);
+            setTempPasswordCopied(false);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Password temporária gerada</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Guarde e partilhe esta password com o utilizador. Será pedida uma nova password no 1.º login.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                readOnly
+                value={tempPassword ?? ""}
+                className="font-mono"
+                onFocus={(e) => e.currentTarget.select()}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={async () => {
+                  if (!tempPassword) return;
+                  try {
+                    await navigator.clipboard.writeText(tempPassword);
+                    setTempPasswordCopied(true);
+                    toast.success("Password copiada");
+                  } catch {
+                    toast.error("Não foi possível copiar");
+                  }
+                }}
+              >
+                {tempPasswordCopied ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <Button
+              type="button"
+              className="w-full"
+              onClick={() => {
+                setTempPassword(null);
+                setTempPasswordCopied(false);
+              }}
+            >
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
