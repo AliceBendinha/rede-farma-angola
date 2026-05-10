@@ -104,14 +104,17 @@ const AdminDashboard = () => {
 
     // If creating new and email provided, create user via edge function
     if (!editingId && form.user_email.trim() && !userId) {
-      // Validate password strength only if a custom password was provided
-      if (form.user_password.trim()) {
-        const strength = validatePasswordStrength(form.user_password.trim());
-        if (!strength.valid) {
-          toast.error(strength.message ?? "Palavra-passe inválida");
-          setLoading(false);
-          return;
-        }
+      // Password is required when creating a new user
+      if (!form.user_password.trim()) {
+        toast.error("Defina uma palavra-passe para o novo utilizador.");
+        setLoading(false);
+        return;
+      }
+      const strength = validatePasswordStrength(form.user_password.trim());
+      if (!strength.valid) {
+        toast.error(strength.message ?? "Palavra-passe inválida");
+        setLoading(false);
+        return;
       }
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -121,7 +124,7 @@ const AdminDashboard = () => {
           body: {
             email: form.user_email.trim(),
             nome: form.nome,
-            password: form.user_password.trim() || undefined,
+            password: form.user_password.trim(),
           },
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
