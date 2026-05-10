@@ -347,16 +347,17 @@ const AdminDashboard = () => {
                               onChange={(e) => setForm({ ...form, user_email: e.target.value })}
                               placeholder="email@exemplo.com"
                             />
-                            <Label className="text-xs text-muted-foreground">Password (opcional):</Label>
+                            <Label className="text-xs text-muted-foreground">Password (obrigatória):</Label>
                             <Input
                               type="password"
                               value={form.user_password}
                               onChange={(e) => setForm({ ...form, user_password: e.target.value })}
-                              placeholder="Deixe vazio para gerar automática"
+                              placeholder="Defina a palavra-passe inicial"
+                              required
                               minLength={8}
                             />
                             <p className="text-xs text-muted-foreground">
-                              {PASSWORD_REQUIREMENTS} Se vazio, será gerada uma password temporária e pedida nova no 1.º login.
+                              {PASSWORD_REQUIREMENTS}
                             </p>
                             {form.user_password.trim() && !validatePasswordStrength(form.user_password.trim()).valid && (
                               <p className="text-xs text-destructive" role="alert">
