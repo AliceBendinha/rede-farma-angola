@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { KeyRound, Loader2 } from "lucide-react";
+import { KeyRound, Loader2, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   PASSWORD_REQUIREMENTS,
@@ -22,6 +22,7 @@ const ResetPassword = () => {
   const [error, setError] = useState<string | null>(null);
   const [recoveryReady, setRecoveryReady] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     // Detect recovery link from e-mail (hash params) or error in hash
