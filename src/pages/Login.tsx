@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Pill, LogIn } from "lucide-react";
+import { Pill, LogIn, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 const Login = () => {
@@ -13,6 +13,8 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<"login" | "forgot">("login");
+  const [resetEmail, setResetEmail] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +32,26 @@ const Login = () => {
     navigate(mustReset ? "/reset-password" : "/dashboard");
   };
 
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail.trim()) {
+      toast.error("Indique o seu e-mail");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setLoading(false);
+    if (error) {
+      toast.error("Não foi possível enviar o e-mail. Tente novamente.");
+      return;
+    }
+    toast.success("Se o e-mail existir, receberá instruções para redefinir a palavra-passe.");
+    setMode("login");
+    setResetEmail("");
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -40,9 +62,12 @@ const Login = () => {
             </div>
           </div>
           <CardTitle className="text-2xl">Rede Farma</CardTitle>
-          <CardDescription>Aceda ao painel de gestão</CardDescription>
+          <CardDescription>
+            {mode === "login" ? "Aceda ao painel de gestão" : "Recuperar palavra-passe por e-mail"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
+          {mode === "login" ? (
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -70,7 +95,46 @@ const Login = () => {
               <LogIn className="h-4 w-4 mr-2" />
               {loading ? "A entrar..." : "Entrar"}
             </Button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("forgot");
+                setResetEmail(email);
+              }}
+              className="block w-full text-center text-sm text-primary hover:underline"
+            >
+              Esqueceu a palavra-passe?
+            </button>
           </form>
+          ) : (
+          <form onSubmit={handleForgot} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="reset-email">Email da conta</Label>
+              <Input
+                id="reset-email"
+                type="email"
+                placeholder="email@exemplo.com"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Enviaremos um link para definir uma nova palavra-passe.
+              </p>
+            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "A enviar..." : "Enviar link de recuperação"}
+            </Button>
+            <button
+              type="button"
+              onClick={() => setMode("login")}
+              className="flex items-center justify-center gap-1 w-full text-sm text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-3 w-3" />
+              Voltar ao login
+            </button>
+          </form>
+          )}
         </CardContent>
       </Card>
     </div>
