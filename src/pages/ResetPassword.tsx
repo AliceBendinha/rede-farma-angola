@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { KeyRound, Loader2 } from "lucide-react";
+import { KeyRound, Loader2, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   PASSWORD_REQUIREMENTS,
@@ -22,6 +22,7 @@ const ResetPassword = () => {
   const [error, setError] = useState<string | null>(null);
   const [recoveryReady, setRecoveryReady] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     // Detect recovery link from e-mail (hash params) or error in hash
@@ -85,7 +86,11 @@ const ResetPassword = () => {
       return;
     }
     toast.success("Palavra-passe actualizada");
-    navigate("/dashboard", { replace: true });
+    setSuccess(true);
+    // Auto-redirect after 3 seconds
+    setTimeout(() => {
+      navigate("/login", { replace: true });
+    }, 3000);
   };
 
   if (loading) {
@@ -109,6 +114,31 @@ const ResetPassword = () => {
           <CardContent>
             <Button className="w-full" onClick={() => navigate("/login", { replace: true })}>
               Voltar ao login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-green-500">
+                <CheckCircle className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl">Palavra-passe actualizada</CardTitle>
+            <CardDescription>
+              A sua palavra-passe foi alterada com sucesso. Vai ser redireccionado para o login em breve.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button className="w-full" onClick={() => navigate("/login", { replace: true })}>
+              Ir para o login
             </Button>
           </CardContent>
         </Card>
