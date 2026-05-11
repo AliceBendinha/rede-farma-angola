@@ -121,6 +121,31 @@ const ResetPassword = () => {
     );
   }
 
+  if (success) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-green-500">
+                <CheckCircle className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl">Palavra-passe actualizada</CardTitle>
+            <CardDescription>
+              A sua palavra-passe foi alterada com sucesso. Vai ser redireccionado para o login em breve.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button className="w-full" onClick={() => navigate("/login", { replace: true })}>
+              Ir para o login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
