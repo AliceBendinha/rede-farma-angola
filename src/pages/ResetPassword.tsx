@@ -86,7 +86,11 @@ const ResetPassword = () => {
       return;
     }
     toast.success("Palavra-passe actualizada");
-    navigate("/dashboard", { replace: true });
+    setSuccess(true);
+    // Auto-redirect after 3 seconds
+    setTimeout(() => {
+      navigate("/login", { replace: true });
+    }, 3000);
   };
 
   if (loading) {
