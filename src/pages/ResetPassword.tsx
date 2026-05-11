@@ -20,10 +20,45 @@ const ResetPassword = () => {
   const [confirm, setConfirm] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [recoveryReady, setRecoveryReady] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && !user) navigate("/login", { replace: true });
-  }, [user, loading, navigate]);
+    // Detect recovery link from e-mail (hash params) or error in hash
+    const hash = window.location.hash.startsWith("#")
+      ? window.location.hash.slice(1)
+      : window.location.hash;
+    const params = new URLSearchParams(hash);
+    const hasRecovery =
+      params.get("type") === "recovery" || params.has("access_token");
+    const hashError = params.get("error_description") || params.get("error");
+
+    if (hashError) {
+      setLinkError(decodeURIComponent(hashError.replace(/\+/g, " ")));
+      return;
+    }
+
+    if (hasRecovery) {
+      setRecoveryReady(true);
+      return;
+    }
+
+    // Listen for PASSWORD_RECOVERY event from Supabase
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setRecoveryReady(true);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    // Only redirect to login if we're sure there's no session and no recovery flow
+    if (!loading && !user && !recoveryReady && !linkError) {
+      const t = setTimeout(() => {
+        if (!user && !recoveryReady) navigate("/login", { replace: true });
+      }, 800);
+      return () => clearTimeout(t);
+    }
+  }, [user, loading, recoveryReady, linkError, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +92,26 @@ const ResetPassword = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (linkError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Link inválido</CardTitle>
+            <CardDescription>
+              {linkError || "O link de recuperação expirou ou já foi utilizado."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button className="w-full" onClick={() => navigate("/login", { replace: true })}>
+              Voltar ao login
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
