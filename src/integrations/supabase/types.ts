@@ -81,6 +81,9 @@ export type Database = {
           imagem_url: string | null
           nome: string
           preco: number
+          quantidade_stock: number
+          stock_minimo: number
+          ultimo_alerta_em: string | null
           updated_at: string
         }
         Insert: {
@@ -92,6 +95,9 @@ export type Database = {
           imagem_url?: string | null
           nome: string
           preco?: number
+          quantidade_stock?: number
+          stock_minimo?: number
+          ultimo_alerta_em?: string | null
           updated_at?: string
         }
         Update: {
@@ -103,6 +109,9 @@ export type Database = {
           imagem_url?: string | null
           nome?: string
           preco?: number
+          quantidade_stock?: number
+          stock_minimo?: number
+          ultimo_alerta_em?: string | null
           updated_at?: string
         }
         Relationships: [
