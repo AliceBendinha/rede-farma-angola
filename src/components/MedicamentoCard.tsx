@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Pill, MapPin, ImageIcon } from "lucide-react";
+import { getStockStatus } from "@/lib/stock";
 
 interface MedicamentoCardProps {
   nome: string;
@@ -9,6 +10,8 @@ interface MedicamentoCardProps {
   farmacia: string;
   farmaciaEndereco: string;
   imagemUrl?: string | null;
+  quantidadeStock?: number;
+  stockMinimo?: number;
 }
 
 const MedicamentoCard = ({
@@ -18,7 +21,13 @@ const MedicamentoCard = ({
   farmacia,
   farmaciaEndereco,
   imagemUrl,
+  quantidadeStock,
+  stockMinimo,
 }: MedicamentoCardProps) => {
+  const stock =
+    typeof quantidadeStock === "number" && typeof stockMinimo === "number"
+      ? getStockStatus(quantidadeStock, stockMinimo)
+      : null;
   return (
     <Card className="transition-all duration-300 hover:shadow-lg border-border">
       {imagemUrl && (
@@ -57,6 +66,18 @@ const MedicamentoCard = ({
               <p className="text-xs text-muted-foreground">{farmaciaEndereco}</p>
             </div>
           </div>
+          {stock && (
+            <Badge
+              variant="outline"
+              className={`mt-2 w-fit gap-1.5 ${stock.badgeClass}`}
+            >
+              <span className={`h-2 w-2 rounded-full ${stock.dotClass}`} />
+              {stock.label}
+              {stock.status !== "esgotado" && (
+                <span className="opacity-70">· {quantidadeStock} un.</span>
+              )}
+            </Badge>
+          )}
         </div>
       </CardContent>
     </Card>
