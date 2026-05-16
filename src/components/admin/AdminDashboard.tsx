@@ -19,6 +19,7 @@ import {
   PASSWORD_REQUIREMENTS,
   validatePasswordStrength,
 } from "@/lib/passwordStrength";
+import { isValidE164, normalizePhone, PHONE_HINT } from "@/lib/phone";
 
 interface Farmacia {
   id: string;
@@ -100,6 +101,13 @@ const AdminDashboard = () => {
     e.preventDefault();
     setLoading(true);
 
+    const telefoneNorm = normalizePhone(form.telefone || "");
+    if (!telefoneNorm || !isValidE164(telefoneNorm)) {
+      toast.error(`Telefone inválido. ${PHONE_HINT}`);
+      setLoading(false);
+      return;
+    }
+
     let userId: string | null = form.user_id || null;
 
     // If creating new and email provided, create user via edge function
@@ -158,7 +166,7 @@ const AdminDashboard = () => {
       endereco: form.endereco,
       latitude: parseFloat(form.latitude),
       longitude: parseFloat(form.longitude),
-      telefone: form.telefone || null,
+      telefone: telefoneNorm,
       horario: form.horario || null,
       user_id: userId,
     };
@@ -302,8 +310,22 @@ const AdminDashboard = () => {
                         <MapPin className="h-4 w-4 mr-2" />Usar minha localização
                       </Button>
                       <div className="space-y-2">
-                        <Label>Telefone</Label>
-                        <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+                        <Label>Telefone *</Label>
+                        <Input
+                          value={form.telefone}
+                          onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                          placeholder="+244923456789"
+                          required
+                          aria-describedby="telefone-hint"
+                        />
+                        <p id="telefone-hint" className="text-xs text-muted-foreground">
+                          {PHONE_HINT}. Recebe alertas SMS de stock baixo.
+                        </p>
+                        {form.telefone && !isValidE164(normalizePhone(form.telefone)) && (
+                          <p className="text-xs text-destructive" role="alert">
+                            Telefone inválido.
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label>Horário</Label>

@@ -8,9 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, ImageIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Pencil, Trash2, ImageIcon, Minus } from "lucide-react";
 import { toast } from "sonner";
 import type { Categoria } from "./FarmaciaDashboard";
+import { getStockStatus } from "@/lib/stock";
 
 interface Medicamento {
   id: string;
@@ -19,6 +21,8 @@ interface Medicamento {
   preco: number;
   descricao: string | null;
   imagem_url: string | null;
+  quantidade_stock: number;
+  stock_minimo: number;
 }
 
 interface Props {
@@ -27,7 +31,14 @@ interface Props {
   onCategoriasChange: () => void;
 }
 
-const emptyForm = { nome: "", categoria_id: "", preco: "", descricao: "" };
+const emptyForm = {
+  nome: "",
+  categoria_id: "",
+  preco: "",
+  descricao: "",
+  quantidade_stock: "0",
+  stock_minimo: "5",
+};
 
 const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) => {
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([]);
@@ -44,6 +55,17 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
   };
 
   useEffect(() => { fetchMedicamentos(); }, [farmaciaId]);
+
+  const maybeSendAlert = async (med: { id: string; quantidade_stock: number; stock_minimo: number }) => {
+    if (med.quantidade_stock > med.stock_minimo) return;
+    try {
+      await supabase.functions.invoke("send-stock-alert", {
+        body: { medicamento_id: med.id },
+      });
+    } catch (err) {
+      console.warn("Alerta SMS não enviado", err);
+    }
+  };
 
   const uploadImage = async (file: File, medId: string): Promise<string | null> => {
     if (file.size > 5 * 1024 * 1024) { toast.error("Imagem muito grande (máx 5MB)"); return null; }
@@ -73,12 +95,21 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    const qtd = parseInt(form.quantidade_stock || "0", 10);
+    const min = parseInt(form.stock_minimo || "0", 10);
+    if (isNaN(qtd) || qtd < 0 || isNaN(min) || min < 0) {
+      toast.error("Quantidades de stock inválidas");
+      setLoading(false);
+      return;
+    }
     const medData = {
       farmacia_id: farmaciaId,
       nome: form.nome,
       categoria_id: form.categoria_id || null,
       preco: parseFloat(form.preco),
       descricao: form.descricao || null,
+      quantidade_stock: qtd,
+      stock_minimo: min,
     };
 
     let savedId = editingId;
@@ -100,6 +131,9 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
     }
 
     toast.success(editingId ? "Medicamento atualizado" : "Medicamento adicionado");
+    if (savedId) {
+      await maybeSendAlert({ id: savedId, quantidade_stock: qtd, stock_minimo: min });
+    }
     setLoading(false);
     setOpen(false);
     setForm(emptyForm);
@@ -109,7 +143,14 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
   };
 
   const handleEdit = (m: Medicamento) => {
-    setForm({ nome: m.nome, categoria_id: m.categoria_id ?? "", preco: String(m.preco), descricao: m.descricao ?? "" });
+    setForm({
+      nome: m.nome,
+      categoria_id: m.categoria_id ?? "",
+      preco: String(m.preco),
+      descricao: m.descricao ?? "",
+      quantidade_stock: String(m.quantidade_stock ?? 0),
+      stock_minimo: String(m.stock_minimo ?? 0),
+    });
     setEditingId(m.id);
     setImageFile(null);
     setOpen(true);
@@ -119,6 +160,24 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
     if (!confirm("Tem certeza que deseja eliminar?")) return;
     const { error } = await supabase.from("medicamentos").delete().eq("id", id);
     if (error) toast.error("Erro ao eliminar"); else { toast.success("Eliminado"); fetchMedicamentos(); }
+  };
+
+  const adjustStock = async (m: Medicamento, delta: number) => {
+    const novo = Math.max(0, (m.quantidade_stock ?? 0) + delta);
+    const { error } = await supabase
+      .from("medicamentos")
+      .update({ quantidade_stock: novo })
+      .eq("id", m.id);
+    if (error) {
+      toast.error("Erro ao ajustar stock");
+      return;
+    }
+    setMedicamentos((prev) =>
+      prev.map((x) => (x.id === m.id ? { ...x, quantidade_stock: novo } : x))
+    );
+    if (novo <= (m.stock_minimo ?? 0)) {
+      await maybeSendAlert({ id: m.id, quantidade_stock: novo, stock_minimo: m.stock_minimo });
+    }
   };
 
   const getCategoriaName = (id: string | null) => categorias.find((c) => c.id === id)?.nome ?? "—";
@@ -159,6 +218,31 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
                 <Label>Preço (Kz) *</Label>
                 <Input type="number" step="0.01" min="0" value={form.preco} onChange={(e) => setForm({ ...form, preco: e.target.value })} required />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Quantidade em stock *</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={form.quantidade_stock}
+                    onChange={(e) => setForm({ ...form, quantidade_stock: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Stock mínimo *</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={form.stock_minimo}
+                    onChange={(e) => setForm({ ...form, stock_minimo: e.target.value })}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">Abaixo deste valor enviamos alerta SMS.</p>
+                </div>
+              </div>
               <div className="space-y-2">
                 <Label>Descrição</Label>
                 <Textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} rows={3} />
@@ -183,6 +267,7 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
               <TableHead>Nome</TableHead>
               <TableHead>Categoria</TableHead>
               <TableHead>Preço</TableHead>
+              <TableHead>Stock</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -201,6 +286,42 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
                 <TableCell className="font-medium">{m.nome}</TableCell>
                 <TableCell>{getCategoriaName(m.categoria_id)}</TableCell>
                 <TableCell>{Number(m.preco).toLocaleString("pt-AO")} Kz</TableCell>
+                <TableCell>
+                  {(() => {
+                    const s = getStockStatus(m.quantidade_stock ?? 0, m.stock_minimo ?? 0);
+                    return (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={`gap-1.5 ${s.badgeClass}`}>
+                          <span className={`h-2 w-2 rounded-full ${s.dotClass}`} />
+                          {m.quantidade_stock ?? 0} un.
+                        </Badge>
+                        <div className="flex items-center gap-0.5">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => adjustStock(m, -1)}
+                            disabled={(m.quantidade_stock ?? 0) <= 0}
+                            aria-label="Diminuir stock"
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => adjustStock(m, +1)}
+                            aria-label="Aumentar stock"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="icon" onClick={() => handleEdit(m)}><Pencil className="h-4 w-4" /></Button>
@@ -211,7 +332,7 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
             ))}
             {medicamentos.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhum medicamento cadastrado</TableCell>
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum medicamento cadastrado</TableCell>
               </TableRow>
             )}
           </TableBody>
