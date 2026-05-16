@@ -218,6 +218,31 @@ const MedicamentosTab = ({ farmaciaId, categorias, onCategoriasChange }: Props) 
                 <Label>Preço (Kz) *</Label>
                 <Input type="number" step="0.01" min="0" value={form.preco} onChange={(e) => setForm({ ...form, preco: e.target.value })} required />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Quantidade em stock *</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={form.quantidade_stock}
+                    onChange={(e) => setForm({ ...form, quantidade_stock: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Stock mínimo *</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={form.stock_minimo}
+                    onChange={(e) => setForm({ ...form, stock_minimo: e.target.value })}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">Abaixo deste valor enviamos alerta SMS.</p>
+                </div>
+              </div>
               <div className="space-y-2">
                 <Label>Descrição</Label>
                 <Textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} rows={3} />
