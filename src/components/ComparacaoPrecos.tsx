@@ -4,12 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Pill, MapPin, ArrowUpDown, TrendingDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getStockStatus } from "@/lib/stock";
 
 interface MedResult {
   id: string;
   nome: string;
   descricao: string | null;
   preco: number;
+  quantidade_stock: number;
+  stock_minimo: number;
   farmacias: { nome: string; endereco: string } | null;
 }
 
@@ -39,7 +42,7 @@ const ComparacaoPrecos = ({ searchTerm, categoriaId }: Props) => {
       setLoading(true);
       let query = supabase
         .from("medicamentos")
-        .select("id, nome, descricao, preco, farmacias(nome, endereco)")
+        .select("id, nome, descricao, preco, quantidade_stock, stock_minimo, farmacias(nome, endereco)")
         .or(`nome.ilike.%${searchTerm}%,descricao.ilike.%${searchTerm}%`)
         .order("preco", { ascending: true });
 
@@ -153,6 +156,18 @@ const ComparacaoPrecos = ({ searchTerm, categoriaId }: Props) => {
                         {item.descricao}
                       </p>
                     )}
+                    {(() => {
+                      const s = getStockStatus(item.quantidade_stock ?? 0, item.stock_minimo ?? 0);
+                      return (
+                        <Badge variant="outline" className={`mt-1 gap-1.5 ${s.badgeClass}`}>
+                          <span className={`h-2 w-2 rounded-full ${s.dotClass}`} />
+                          {s.label}
+                          {s.status !== "esgotado" && (
+                            <span className="opacity-70">· {item.quantidade_stock} un.</span>
+                          )}
+                        </Badge>
+                      );
+                    })()}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
