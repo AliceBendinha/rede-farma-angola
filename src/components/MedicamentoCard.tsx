@@ -24,10 +24,7 @@ const MedicamentoCard = ({
   quantidadeStock,
   stockMinimo,
 }: MedicamentoCardProps) => {
-  const stock =
-    typeof quantidadeStock === "number" && typeof stockMinimo === "number"
-      ? getStockStatus(quantidadeStock, stockMinimo)
-      : null;
+  const stock = getStockStatus(quantidadeStock ?? 0, stockMinimo ?? 5);
   return (
     <Card className="transition-all duration-300 hover:shadow-lg border-border">
       {imagemUrl && (
@@ -66,18 +63,16 @@ const MedicamentoCard = ({
               <p className="text-xs text-muted-foreground">{farmaciaEndereco}</p>
             </div>
           </div>
-          {stock && (
-            <Badge
-              variant="outline"
-              className={`mt-2 w-fit gap-1.5 ${stock.badgeClass}`}
-            >
-              <span className={`h-2 w-2 rounded-full ${stock.dotClass}`} />
-              {stock.label}
-              {stock.status !== "esgotado" && (
-                <span className="opacity-70">· {quantidadeStock} un.</span>
-              )}
-            </Badge>
+        <Badge
+          variant="outline"
+          className={`mt-2 w-fit gap-1.5 ${stock.badgeClass}`}
+        >
+          <span className={`h-2 w-2 rounded-full ${stock.dotClass}`} />
+          {stock.label}
+          {stock.status !== "esgotado" && (
+            <span className="opacity-70">· {quantidadeStock ?? 0} un.</span>
           )}
+        </Badge>
         </div>
       </CardContent>
     </Card>
