@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, MapPin, Phone, Clock, Tag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
+import Seo from "@/components/Seo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -66,8 +67,24 @@ const FarmaciaDetalhes = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {farmacia && (
+        <Seo
+          title={`${farmacia.nome} — Farmácia em Angola | Rede Farma`}
+          description={`${farmacia.nome} — ${farmacia.endereco}. Veja categorias de medicamentos disponíveis, contactos e horário.`}
+          path={`/farmacias/${farmacia.id}`}
+          jsonLd={{
+            "@context": "https://schema.org",
+            "@type": "Pharmacy",
+            name: farmacia.nome,
+            address: farmacia.endereco,
+            telephone: farmacia.telefone ?? undefined,
+            openingHours: farmacia.horario ?? undefined,
+            url: `https://rede-farma-angola.lovable.app/farmacias/${farmacia.id}`,
+          }}
+        />
+      )}
       <Navbar />
-      <div className="container py-8">
+      <main className="container py-8">
         <Link to="/farmacias">
           <Button variant="ghost" className="mb-6 gap-2 text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" />
@@ -144,7 +161,7 @@ const FarmaciaDetalhes = () => {
             )}
           </>
         )}
-      </div>
+      </main>
     </div>
   );
 };

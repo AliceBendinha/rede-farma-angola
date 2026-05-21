@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import Seo from "@/components/Seo";
 import { useNavigate } from "react-router-dom";
 import ComparacaoPrecos from "@/components/ComparacaoPrecos";
 import { supabase } from "@/integrations/supabase/client";
@@ -85,9 +86,14 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      <Seo
+        title="Rede Farma — Medicamentos e Farmácias em Angola"
+        description="Pesquise medicamentos, compare preços e localize farmácias próximas em Angola. Acesso rápido à informação de saúde."
+        path="/"
+      />
       <Navbar />
-      
-      {/* Hero Section */}
+
+      <main>
       <section className="container py-20 md:py-32">
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-8 flex justify-center">
@@ -163,6 +169,7 @@ const Home = () => {
           ))}
         </div>
       </section>
+      </main>
 
       <Footer />
     </div>

@@ -1,0 +1,9 @@
+# Rede Farma
+
+> Rede integrada de farmácias em Angola: pesquisa de medicamentos, comparação de preços, disponibilidade em stock e localização de farmácias.
+
+## Pages
+
+- [Início](/): Pesquisa de medicamentos com comparação de preços entre farmácias.
+- [Medicamentos](/medicamentos): Catálogo público de medicamentos com preços, stock e farmácia.
+- [Farmácias](/farmacias): Lista e mapa de farmácias parceiras em Angola.
