@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import MedicamentoCard from "@/components/MedicamentoCard";
+import Seo from "@/components/Seo";
 import { supabase } from "@/integrations/supabase/client";
 
 interface MedWithFarmacia {
@@ -50,8 +51,13 @@ const Medicamentos = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title={searchTerm ? `Resultados para "${searchTerm}" — Rede Farma` : "Medicamentos disponíveis — Rede Farma"}
+        description={searchTerm ? `Veja farmácias com ${searchTerm} disponível em Angola, com preços e stock atualizados.` : "Catálogo de medicamentos com preços, disponibilidade e farmácias em Angola."}
+        path={searchTerm ? `/medicamentos?search=${encodeURIComponent(searchTerm)}` : "/medicamentos"}
+      />
       <Navbar />
-      <div className="container py-8">
+      <main className="container py-8">
         <div className="mb-8">
           <h1 className="mb-4 text-3xl font-bold text-foreground">Pesquisar Medicamentos</h1>
           <form onSubmit={handleSearch} className="flex gap-2">
@@ -91,7 +97,7 @@ const Medicamentos = () => {
             <p className="text-muted-foreground">Tente pesquisar com outro termo</p>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };

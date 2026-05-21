@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import FarmaciaCard from "@/components/FarmaciaCard";
+import Seo from "@/components/Seo";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -74,8 +75,13 @@ const Farmacias = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title="Farmácias em Angola — Rede Farma"
+        description="Encontre farmácias próximas em Angola. Lista com endereços, contactos, horários e mapa interativo."
+        path="/farmacias"
+      />
       <Navbar />
-      <div className="container py-8">
+      <main className="container py-8">
         <div className="mb-8">
           <h1 className="mb-4 text-3xl font-bold text-foreground">Farmácias Próximas</h1>
           <form onSubmit={(e) => e.preventDefault()} className="flex gap-2">
@@ -117,7 +123,7 @@ const Farmacias = () => {
             </Suspense>
           </TabsContent>
         </Tabs>
-      </div>
+      </main>
     </div>
   );
 };
