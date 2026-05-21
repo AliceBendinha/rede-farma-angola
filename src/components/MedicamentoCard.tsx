@@ -24,10 +24,7 @@ const MedicamentoCard = ({
   quantidadeStock,
   stockMinimo,
 }: MedicamentoCardProps) => {
-  const stock =
-    typeof quantidadeStock === "number" && typeof stockMinimo === "number"
-      ? getStockStatus(quantidadeStock, stockMinimo)
-      : null;
+  const stock = getStockStatus(quantidadeStock ?? 0, stockMinimo ?? 5);
   return (
     <Card className="transition-all duration-300 hover:shadow-lg border-border">
       {imagemUrl && (
