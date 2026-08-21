@@ -121,6 +121,41 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── 4. Rate limiting anti-spam por farmácia ───────────────
+    const farmaciaId = med.farmacia_id ?? null;
+    if (farmaciaId) {
+      const now = new Date();
+      const hourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+      const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+
+      const [{ count: lastHour }, { count: lastDay }] = await Promise.all([
+        supabase
+          .from("sms_envios")
+          .select("id", { count: "exact", head: true })
+          .eq("farmacia_id", farmaciaId)
+          .gte("created_at", hourAgo),
+        supabase
+          .from("sms_envios")
+          .select("id", { count: "exact", head: true })
+          .eq("farmacia_id", farmaciaId)
+          .gte("created_at", dayAgo),
+      ]);
+
+      if ((lastHour ?? 0) >= RATE_MAX_PER_HOUR) {
+        return json(
+          { error: "Limite de alertas SMS atingido (5/hora). Tente mais tarde." },
+          429
+        );
+      }
+      if ((lastDay ?? 0) >= RATE_MAX_PER_DAY) {
+        return json(
+          { error: "Limite de alertas SMS atingido (20/dia). Tente amanhã." },
+          429
+        );
+      }
+    }
+
+
     const farmacia = (med as any).farmacias as
       | { nome: string; telefone: string | null }
       | null;
