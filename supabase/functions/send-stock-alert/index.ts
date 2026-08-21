@@ -11,11 +11,15 @@ const corsHeaders = {
 
 const E164_REGEX = /^\+[1-9]\d{7,14}$/;
 const COOLDOWN_HOURS = 24;
+// Limites anti-spam por farmácia
+const RATE_MAX_PER_HOUR = 5;
+const RATE_MAX_PER_DAY = 20;
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/twilio";
 
 interface ReqBody {
   medicamento_id?: string;
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
