@@ -36,13 +36,18 @@ Deno.serve(async (req) => {
     });
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } =
-      await userClient.auth.getClaims(token);
-
-    if (claimsError || !claimsData?.claims) {
+    let userId: string;
+    try {
+      const { data: claimsData, error: claimsError } =
+        await userClient.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims?.sub) {
+        return json({ error: "Não autenticado" }, 401);
+      }
+      userId = claimsData.claims.sub as string;
+    } catch (_e) {
       return json({ error: "Não autenticado" }, 401);
     }
-    const userId = claimsData.claims.sub as string;
+
 
     // ── 2. Require farmacia or admin role ─────────────────────
     const [{ data: isFarmacia }, { data: isAdmin }] = await Promise.all([
