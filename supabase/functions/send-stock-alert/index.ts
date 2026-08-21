@@ -11,11 +11,15 @@ const corsHeaders = {
 
 const E164_REGEX = /^\+[1-9]\d{7,14}$/;
 const COOLDOWN_HOURS = 24;
+// Limites anti-spam por farmácia
+const RATE_MAX_PER_HOUR = 5;
+const RATE_MAX_PER_DAY = 20;
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/twilio";
 
 interface ReqBody {
   medicamento_id?: string;
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -117,6 +121,41 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── 4. Rate limiting anti-spam por farmácia ───────────────
+    const farmaciaId = med.farmacia_id ?? null;
+    if (farmaciaId) {
+      const now = new Date();
+      const hourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+      const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+
+      const [{ count: lastHour }, { count: lastDay }] = await Promise.all([
+        supabase
+          .from("sms_envios")
+          .select("id", { count: "exact", head: true })
+          .eq("farmacia_id", farmaciaId)
+          .gte("created_at", hourAgo),
+        supabase
+          .from("sms_envios")
+          .select("id", { count: "exact", head: true })
+          .eq("farmacia_id", farmaciaId)
+          .gte("created_at", dayAgo),
+      ]);
+
+      if ((lastHour ?? 0) >= RATE_MAX_PER_HOUR) {
+        return json(
+          { error: "Limite de alertas SMS atingido (5/hora). Tente mais tarde." },
+          429
+        );
+      }
+      if ((lastDay ?? 0) >= RATE_MAX_PER_DAY) {
+        return json(
+          { error: "Limite de alertas SMS atingido (20/dia). Tente amanhã." },
+          429
+        );
+      }
+    }
+
+
     const farmacia = (med as any).farmacias as
       | { nome: string; telefone: string | null }
       | null;
@@ -173,17 +212,37 @@ Deno.serve(async (req) => {
 
     const twilioData = await twilioRes.json().catch(() => ({}));
     if (!twilioRes.ok) {
-      console.error("Twilio falhou", twilioRes.status, twilioData);
+      console.error("Twilio falhou", twilioRes.status);
+      // Tentativas falhadas também contam para o limite (anti-abuso)
+      await supabase.from("sms_envios").insert({
+        farmacia_id: farmaciaId,
+        medicamento_id: med.id,
+        telefone: phone,
+        status: "falhou",
+        erro: `twilio_${twilioRes.status}`,
+      });
       return json({ error: "Falha ao enviar SMS" }, 502);
-
     }
 
-    await supabase
-      .from("medicamentos")
-      .update({ ultimo_alerta_em: new Date().toISOString() })
-      .eq("id", med.id);
 
-    return json({ ok: true, sid: twilioData.sid });
+    await Promise.allSettled([
+      supabase
+        .from("sms_envios")
+        .insert({
+          farmacia_id: farmaciaId,
+          medicamento_id: med.id,
+          telefone: phone,
+          status: "enviado",
+          sid: (twilioData as { sid?: string }).sid ?? null,
+        }),
+      supabase
+        .from("medicamentos")
+        .update({ ultimo_alerta_em: new Date().toISOString() })
+        .eq("id", med.id),
+    ]);
+
+    return json({ ok: true });
+
   } catch (err) {
     console.error(err);
     return json({ error: "Erro interno" }, 500);

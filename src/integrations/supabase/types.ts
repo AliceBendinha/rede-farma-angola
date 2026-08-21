@@ -196,6 +196,54 @@ export type Database = {
           },
         ]
       }
+      sms_envios: {
+        Row: {
+          created_at: string
+          erro: string | null
+          farmacia_id: string
+          id: string
+          medicamento_id: string | null
+          sid: string | null
+          status: string
+          telefone: string
+        }
+        Insert: {
+          created_at?: string
+          erro?: string | null
+          farmacia_id: string
+          id?: string
+          medicamento_id?: string | null
+          sid?: string | null
+          status?: string
+          telefone: string
+        }
+        Update: {
+          created_at?: string
+          erro?: string | null
+          farmacia_id?: string
+          id?: string
+          medicamento_id?: string | null
+          sid?: string | null
+          status?: string
+          telefone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_envios_farmacia_id_fkey"
+            columns: ["farmacia_id"]
+            isOneToOne: false
+            referencedRelation: "farmacias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_envios_medicamento_id_fkey"
+            columns: ["medicamento_id"]
+            isOneToOne: false
+            referencedRelation: "medicamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
