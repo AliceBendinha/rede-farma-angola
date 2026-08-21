@@ -159,10 +159,8 @@ Deno.serve(async (req) => {
     const twilioData = await twilioRes.json().catch(() => ({}));
     if (!twilioRes.ok) {
       console.error("Twilio falhou", twilioRes.status, twilioData);
-      return json(
-        { error: "Falha ao enviar SMS", details: twilioData },
-        502
-      );
+      return json({ error: "Falha ao enviar SMS" }, 502);
+
     }
 
     await supabase
