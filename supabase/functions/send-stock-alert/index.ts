@@ -214,15 +214,26 @@ Deno.serve(async (req) => {
     if (!twilioRes.ok) {
       console.error("Twilio falhou", twilioRes.status, twilioData);
       return json({ error: "Falha ao enviar SMS" }, 502);
-
     }
 
-    await supabase
-      .from("medicamentos")
-      .update({ ultimo_alerta_em: new Date().toISOString() })
-      .eq("id", med.id);
+    await Promise.allSettled([
+      supabase
+        .from("sms_envios")
+        .insert({
+          farmacia_id: farmaciaId,
+          medicamento_id: med.id,
+          telefone: phone,
+          status: "enviado",
+          sid: (twilioData as { sid?: string }).sid ?? null,
+        }),
+      supabase
+        .from("medicamentos")
+        .update({ ultimo_alerta_em: new Date().toISOString() })
+        .eq("id", med.id),
+    ]);
 
-    return json({ ok: true, sid: twilioData.sid });
+    return json({ ok: true });
+
   } catch (err) {
     console.error(err);
     return json({ error: "Erro interno" }, 500);
