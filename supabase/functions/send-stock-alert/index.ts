@@ -21,13 +21,44 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // ── 1. Require a valid JWT ────────────────────────────────
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return json({ error: "Não autenticado" }, 401);
+    }
+
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } =
+      await userClient.auth.getClaims(token);
+
+    if (claimsError || !claimsData?.claims) {
+      return json({ error: "Não autenticado" }, 401);
+    }
+    const userId = claimsData.claims.sub as string;
+
+    // ── 2. Require farmacia or admin role ─────────────────────
+    const [{ data: isFarmacia }, { data: isAdmin }] = await Promise.all([
+      userClient.rpc("has_role", { _user_id: userId, _role: "farmacia" }),
+      userClient.rpc("has_role", { _user_id: userId, _role: "admin" }),
+    ]);
+
+    if (!isFarmacia && !isAdmin) {
+      return json({ error: "Acesso negado" }, 403);
+    }
+
     const { medicamento_id } = (await req.json()) as ReqBody;
     if (!medicamento_id || typeof medicamento_id !== "string") {
       return json({ error: "medicamento_id é obrigatório" }, 400);
     }
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
     const { data: med, error: medErr } = await supabase
@@ -41,6 +72,20 @@ Deno.serve(async (req) => {
     if (medErr || !med) {
       return json({ error: "Medicamento não encontrado" }, 404);
     }
+
+    // ── 3. Pharmacy users may only alert their own medicines ──
+    if (!isAdmin) {
+      const { data: ownFarmacia } = await userClient
+        .from("farmacias")
+        .select("id")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (!ownFarmacia || ownFarmacia.id !== med.farmacia_id) {
+        return json({ error: "Acesso negado" }, 403);
+      }
+    }
+
 
     const qty = med.quantidade_stock ?? 0;
     const min = med.stock_minimo ?? 0;
@@ -114,10 +159,8 @@ Deno.serve(async (req) => {
     const twilioData = await twilioRes.json().catch(() => ({}));
     if (!twilioRes.ok) {
       console.error("Twilio falhou", twilioRes.status, twilioData);
-      return json(
-        { error: "Falha ao enviar SMS", details: twilioData },
-        502
-      );
+      return json({ error: "Falha ao enviar SMS" }, 502);
+
     }
 
     await supabase
