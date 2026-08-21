@@ -59,9 +59,9 @@ Deno.serve(async (req) => {
       return json({ error: "Acesso negado" }, 403);
     }
 
-    const { medicamento_id } = (await req.json()) as ReqBody;
-    if (!medicamento_id || typeof medicamento_id !== "string") {
-      return json({ error: "medicamento_id é obrigatório" }, 400);
+    const { medicamento_id } = (await req.json().catch(() => ({}))) as ReqBody;
+    if (!isUuid(medicamento_id)) {
+      return json({ error: "medicamento_id inválido" }, 400);
     }
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
@@ -79,17 +79,25 @@ Deno.serve(async (req) => {
     }
 
     // ── 3. Pharmacy users may only alert their own medicines ──
-    if (!isAdmin) {
-      const { data: ownFarmacia } = await userClient
-        .from("farmacias")
-        .select("id")
-        .eq("user_id", userId)
-        .maybeSingle();
+    const { data: ownFarmacia } = isAdmin
+      ? { data: null }
+      : await userClient
+          .from("farmacias")
+          .select("id")
+          .eq("user_id", userId)
+          .maybeSingle();
 
-      if (!ownFarmacia || ownFarmacia.id !== med.farmacia_id) {
-        return json({ error: "Acesso negado" }, 403);
-      }
+    if (
+      !canActOnFarmacia({
+        isAdmin: !!isAdmin,
+        isFarmacia: !!isFarmacia,
+        ownFarmaciaId: ownFarmacia?.id ?? null,
+        targetFarmaciaId: med.farmacia_id ?? null,
+      })
+    ) {
+      return json({ error: "Acesso negado" }, 403);
     }
+
 
 
     const qty = med.quantidade_stock ?? 0;
