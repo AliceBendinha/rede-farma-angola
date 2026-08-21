@@ -212,9 +212,18 @@ Deno.serve(async (req) => {
 
     const twilioData = await twilioRes.json().catch(() => ({}));
     if (!twilioRes.ok) {
-      console.error("Twilio falhou", twilioRes.status, twilioData);
+      console.error("Twilio falhou", twilioRes.status);
+      // Tentativas falhadas também contam para o limite (anti-abuso)
+      await supabase.from("sms_envios").insert({
+        farmacia_id: farmaciaId,
+        medicamento_id: med.id,
+        telefone: phone,
+        status: "falhou",
+        erro: `twilio_${twilioRes.status}`,
+      });
       return json({ error: "Falha ao enviar SMS" }, 502);
     }
+
 
     await Promise.allSettled([
       supabase
